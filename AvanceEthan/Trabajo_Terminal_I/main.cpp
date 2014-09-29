@@ -29,8 +29,20 @@ int main(int argc, char** argv) {
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
 	  vcapture.get(CV_CAP_PROP_FPS));
+  VideoFactory vFx(std::string("C:\\Users\\Drako\\Desktop\\salidaX.avi"), 
+	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
+	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
+	  vcapture.get(CV_CAP_PROP_FPS));
+  VideoFactory vFy(std::string("C:\\Users\\Drako\\Desktop\\salidaY.avi"), 
+	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
+	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
+	  vcapture.get(CV_CAP_PROP_FPS));
+  VideoFactory vFt(std::string("C:\\Users\\Drako\\Desktop\\salidaT.avi"), 
+	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
+	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
+	  vcapture.get(CV_CAP_PROP_FPS));
 
-  for (int i = 0; i < 100; ++i) {
+  for (int i = 0; i < 50; ++i) {
     std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;
@@ -40,7 +52,12 @@ int main(int argc, char** argv) {
     std::string path_and_index = std::string(argv[2]) + std::to_string(static_cast<long long>(i));
     //imwrite(path_and_index + "_original.jpg", capture);
     //imwrite(path_and_index + "_smooth.jpg", lk.AddFrame(&frame));
-	vF.agregaFrame( frame.GetMatrix() );
+	//vF.agregaFrame( frame.GetMatrix() );
+	vF.agregaFrame( lk.AddFrame(&frame) );
+	vFy.agregaFrame( lk.GradientEstimationAtY() );
+	vFx.agregaFrame( lk.GradientEstimationAtX() );
+	
+	vFt.agregaFrame( lk.GradientEstimationAtT() );
   }
 
   return 0;
