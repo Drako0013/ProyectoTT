@@ -11,6 +11,7 @@
 #include <ctype.h>
 
 #include "constants.h"
+#include "VideoFactory.h"
 
 using namespace cv;
 using namespace std;
@@ -96,6 +97,16 @@ int _tmain(int argc, char* argv[]){
         cout << "Could not initialize capturing...\n";
         return 0;
     }
+	VideoFactory vF(std::string("C:\\Users\\Drako\\Desktop\\salida.avi"), 
+						(int) cap.get(CV_CAP_PROP_FRAME_WIDTH), 
+						(int) cap.get(CV_CAP_PROP_FRAME_HEIGHT),
+						cap.get(CV_CAP_PROP_FPS));
+	//int ex = static_cast<int>(cap.get(CV_CAP_PROP_FOURCC));     // Get Codec Type- Int form
+    // Transform from int to char via Bitwise operators
+    //Size S = Size((int) cap.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
+   //               (int) cap.get(CV_CAP_PROP_FRAME_HEIGHT));
+    //VideoWriter outputVideo;                                        // Open the output
+    //outputVideo.open("C:\\Users\\Drako\\Desktop\\nope2.avi", CV_FOURCC('M','S','V','C'), cap.get(CV_CAP_PROP_FPS), S, true);
 
     Mat gray, prevGray, image, dest;
     vector<Point2f> points[2];
@@ -103,16 +114,21 @@ int _tmain(int argc, char* argv[]){
 		cout << "Evaluando frame #" << i << endl;
         Mat frame;
         cap >> frame;
-        if( frame.empty() )
+		if( frame.empty() )
             break;
         frame.copyTo(image);
+		
 		cvtColor(image, gray, COLOR_BGR2GRAY);
+		/*
 		if(i != 0){
 			smoothe(prevGray, gray, dest);
 			string s = "C:\\Users\\Drako\\Desktop\\images\\smoothed" + to_string(i) + ".bmp";
 			imwrite(s, dest);
 		}
         cv::swap(prevGray, gray);
+		*/
+		vF.agregaFrame(gray);
+		//outputVideo << gray;
     }
 	return 0;
 }

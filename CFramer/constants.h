@@ -2,7 +2,7 @@ const float alfa = 0.75f;
 
 const double gradient[] = {-1.0f, 8.0f, 0.0f, -8.0f, 1.0f};
 
-const double kernel[][] = {
+const double kernel[5][5] = {
 	{0.00390625f,	0.015625f,	0.0234375f,	0.015625f,	0.00390625f},
 	{0.015625f,		0.0625f,	0.09375f,	0.0625f,	0.015625f},
 	{0.0234375f,	0.09375f,	0.140625f,	0.09375f,	0.0234375f},
