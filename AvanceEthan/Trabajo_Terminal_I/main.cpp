@@ -54,10 +54,10 @@ int main(int argc, char** argv) {
     //imwrite(path_and_index + "_smooth.jpg", lk.AddFrame(&frame));
 	//vF.agregaFrame( frame.GetMatrix() );
 	vF.agregaFrame( lk.AddFrame(&frame) );
-	vFy.agregaFrame( lk.GradientEstimationAtY() );
-	vFx.agregaFrame( lk.GradientEstimationAtX() );
 	
-	vFt.agregaFrame( lk.GradientEstimationAtT() );
+	vFx.agregaFrame( lk.GradientSmoothing( lk.GradientEstimationAtX()) );
+	vFy.agregaFrame( lk.GradientSmoothing( lk.GradientEstimationAtY()) );
+	vFt.agregaFrame( lk.GradientSmoothing( lk.GradientEstimationAtT()) );
   }
 
   return 0;

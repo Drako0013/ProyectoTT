@@ -15,6 +15,7 @@ class LucasKanade {
   cv::Mat GradientEstimationAtX();
   cv::Mat GradientEstimationAtY();
   cv::Mat GradientEstimationAtT();
+   cv::Mat GradientSmoothing(cv::Mat &orig);
 
  private:
   static const double kAlpha;
@@ -26,8 +27,6 @@ class LucasKanade {
   std::vector<Frame> frames_;
 
   void SmoothFrame(int);
- 
-  void GradientSmoothing();
 };
 
 #endif

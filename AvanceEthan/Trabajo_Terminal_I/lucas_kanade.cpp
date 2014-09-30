@@ -138,59 +138,22 @@ cv::Mat LucasKanade::GradientEstimationAtT(){
 	return frame_t;
 }
 
-void LucasKanade::GradientSmoothing(){
-	/*
-	int width = frames_.at[frames_.end() - 1].cols;
-	int height = frames_.at[frames_.end() - 1].rows;
-	Frame* frame = &frames_.at[frames_.end() - 1];
-	
-	// x-Spatial Smoothing
-	int* pixels = new int[kSpatialSmoothSize];
-	for (int i = 0; i < frame->Rows(); ++i) {
-		double pix_sum = 0;
-		for (int j = 0; j < frame->Columns(); ++j) {
-			int this_pix = frame->GetPixel(i, j);
-
-			pix_sum += this_pix;
-			if(kSpatialSmoothSize <= j)
-				pix_sum -= pixels[j % kSpatialSmoothSize];
-			pixels[j % kSpatialSmoothSize] = this_pix;
-
-			this_pix = pix_sum / std::min(kSpatialSmoothSize, j + 1);
-			frame->SetPixel(i, j, this_pix);
-		}
-	}
-
-	// y-Spatial Smoothing
-	for (int i = 0; i < frame->Columns(); ++i) {
-		double pix_sum = 0;
-		for (int j = 0; j < frame->Rows(); ++j) {
-			int this_pix = frame->GetPixel(j, i);
-
-			pix_sum += this_pix;
-			if(kSpatialSmoothSize <= j)
-				pix_sum -= pixels[j % kSpatialSmoothSize];
-			pixels[j % kSpatialSmoothSize] = this_pix;
-
-			this_pix = pix_sum / std::min(kSpatialSmoothSize, j + 1);
-			frame->SetPixel(j, i, this_pix);
-		}
-	}
-	delete pixels;
-	*/
-	/*
+cv::Mat LucasKanade::GradientSmoothing(cv::Mat &orig){
+	int width = orig.cols;
+	int height = orig.rows;
+	cv::Mat dest;
 	orig.copyTo(dest);
 	for(int i = 0; i < height; i++){
 		for(int j = 0; j < width; j++){
 			dest.at<uchar>(i, j) = 0;
-			for(int k = 0; k <= 5; k++){
-				for(int l = 0; l <= 5; l++){
-					if( (i + k >= 0 && i + k) < height || (j + l >= 0 && j + l) ){
+			for(int k = 0; k < 5; k++){
+				for(int l = 0; l < 5; l++){
+					if( (i + k) < height && (j + l) < width ){
 						dest.at<uchar>(i, j) += orig.at<uchar>(i + k, j + l) * kernel[k][l];
 					}
 				}
 			}
 		}
 	}
-	*/
+	return dest;
 }
