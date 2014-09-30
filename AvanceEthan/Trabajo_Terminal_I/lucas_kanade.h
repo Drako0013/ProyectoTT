@@ -15,6 +15,7 @@ class LucasKanade {
   cv::Mat GradientEstimationAtX();
   cv::Mat GradientEstimationAtY();
   cv::Mat GradientEstimationAtT();
+  void CalculateFlow(cv::Mat &, cv::Mat &);
 
  private:
   static const double kAlpha;
@@ -27,7 +28,8 @@ class LucasKanade {
 
   void SmoothFrame(int);
  
-  void GradientSmoothing();
+  void GradientSmoothing(cv::Mat &, cv::Mat &, cv::Mat &);
+
 };
 
 #endif

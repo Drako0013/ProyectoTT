@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -21,25 +22,30 @@ int main(int argc, char** argv) {
     std::cout << "Could not initialize capturing.\n";
     return 0;
   }
+  std::string dir = std::string(argv[2]);
 
   LucasKanade lk;
   cv::Mat capture;
   Frame frame(true);
-  VideoFactory vF(std::string("C:\\Users\\Drako\\Desktop\\salida.avi"), 
+  VideoFactory vF(dir + "\\salida.avi", 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
 	  vcapture.get(CV_CAP_PROP_FPS));
-  VideoFactory vFx(std::string("C:\\Users\\Drako\\Desktop\\salidaX.avi"), 
+  VideoFactory vFx(dir + "\\salidaX.avi", 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
 	  vcapture.get(CV_CAP_PROP_FPS));
-  VideoFactory vFy(std::string("C:\\Users\\Drako\\Desktop\\salidaY.avi"), 
+  VideoFactory vFy(dir + "\\salidaY.avi", 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
 	  vcapture.get(CV_CAP_PROP_FPS));
-  VideoFactory vFt(std::string("C:\\Users\\Drako\\Desktop\\salidaT.avi"), 
+  VideoFactory vFt(dir + "\\salidaT.avi", 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
+	  vcapture.get(CV_CAP_PROP_FPS));
+  VideoFactory vFf(dir + "\\salidaF.avi",
+	  (int)vcapture.get(CV_CAP_PROP_FRAME_WIDTH),
+	  (int)vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
 	  vcapture.get(CV_CAP_PROP_FPS));
 
   for (int i = 0; i < 50; ++i) {
@@ -54,10 +60,26 @@ int main(int argc, char** argv) {
     //imwrite(path_and_index + "_smooth.jpg", lk.AddFrame(&frame));
 	//vF.agregaFrame( frame.GetMatrix() );
 	vF.agregaFrame( lk.AddFrame(&frame) );
-	vFy.agregaFrame( lk.GradientEstimationAtY() );
-	vFx.agregaFrame( lk.GradientEstimationAtX() );
-	
-	vFt.agregaFrame( lk.GradientEstimationAtT() );
+
+	cv::Mat gradX = lk.GradientEstimationAtX();
+	cv::Mat gradY = lk.GradientEstimationAtX();
+	cv::Mat gradT = lk.GradientEstimationAtT();
+	cv::Mat velX, velY, vel;
+	gradX.copyTo(vel);
+	lk.CalculateFlow(velX, velY);
+
+	vFy.agregaFrame( gradX );
+	vFx.agregaFrame( gradY );
+	vFt.agregaFrame( gradT );
+
+	for (int ii = 0; ii < velX.rows; ii++) {
+		for (int jj = 0; jj < velY.rows; jj++) {
+			double x = velX.at<double>(ii, jj), y = velY.at<double>(ii, jj);
+			vel.at<uchar>(ii, jj) = (uchar)(sqrt(x * x + y * y) * 10.0);
+		}
+	}
+	vFf.agregaFrame( vel );
+
   }
 
   return 0;
