@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
 	  vcapture.get(CV_CAP_PROP_FPS));
+  /*
   VideoFactory vFx(dir + "\\salidaX.avi", 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
@@ -43,6 +44,7 @@ int main(int argc, char** argv) {
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_WIDTH), 
 	  (int) vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
 	  vcapture.get(CV_CAP_PROP_FPS));
+  */
   VideoFactory vFf(dir + "\\salidaF.avi",
 	  (int)vcapture.get(CV_CAP_PROP_FRAME_WIDTH),
 	  (int)vcapture.get(CV_CAP_PROP_FRAME_HEIGHT),
@@ -56,26 +58,23 @@ int main(int argc, char** argv) {
 		frame.SetMatrix(&capture);
     
     std::string path_and_index = std::string(argv[2]) + std::to_string(static_cast<long long>(i));
-    //imwrite(path_and_index + "_original.jpg", capture);
-    //imwrite(path_and_index + "_smooth.jpg", lk.AddFrame(&frame));
-	//vF.agregaFrame( frame.GetMatrix() );
 	vF.agregaFrame( lk.AddFrame(&frame) );
 
-	cv::Mat gradX = lk.GradientEstimationAtX();
-	cv::Mat gradY = lk.GradientEstimationAtX();
-	cv::Mat gradT = lk.GradientEstimationAtT();
-	cv::Mat velX, velY, vel;
-	gradX.copyTo(vel);
+	//*cv::Mat gradX = lk.GradientEstimationAtX();
+	//cv::Mat gradY = lk.GradientEstimationAtX();
+	//cv::Mat gradT = lk.GradientEstimationAtT();
+	cv::Mat velX, velY, vel(frame.Rows(), frame.Columns(), CV_8U);
+	//gradX.copyTo(vel);
 	lk.CalculateFlow(velX, velY);
 
-	vFy.agregaFrame( gradX );
-	vFx.agregaFrame( gradY );
-	vFt.agregaFrame( gradT );
+	//vFy.agregaFrame( gradX );
+	//vFx.agregaFrame( gradY );
+	//vFt.agregaFrame( gradT );
 
 	for (int ii = 0; ii < velX.rows; ii++) {
-		for (int jj = 0; jj < velY.rows; jj++) {
+		for (int jj = 0; jj < velY.cols; jj++) {
 			double x = velX.at<double>(ii, jj), y = velY.at<double>(ii, jj);
-			vel.at<uchar>(ii, jj) = (uchar)(sqrt(x * x + y * y) * 10.0);
+			vel.at<uchar>(ii, jj) = (uchar)(sqrt(x * x + y * y));
 		}
 	}
 	vFf.agregaFrame( vel );

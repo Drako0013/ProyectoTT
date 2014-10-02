@@ -78,18 +78,18 @@ void LucasKanade::SmoothFrame(int index) {
 
 cv::Mat LucasKanade::GradientEstimationAtX(){
 	Frame* frame = &frames_.back();
-	cv::Mat frame_x;
-	frame->GetMatrix().copyTo(frame_x);
+	cv::Mat frame_x = cv::Mat(frame->Rows(), frame->Columns(), CV_64F);
 
 	// Ix estimation
 	for (int i = 0; i < frame->Rows(); ++i) {
 		for (int j = 0; j < frame->Columns(); ++j) {
 			double pix_sum_x = 0;
-			for(int k = -2; k <= 2; k++){
-				if( (i + k) >= 0 && (i + k) < frame->Rows())
+			for (int k = -2; k <= 2; k++){
+				if ((i + k) >= 0 && (i + k) < frame->Rows()) {
 					pix_sum_x += frame->GetPixel(i + k, j) * gradient[k + 2];
+				}
 			}
-			frame_x.at<uchar>(i, j) = pix_sum_x / 12.0;
+			frame_x.at<double>(i, j) = pix_sum_x / 12.0;
 		}
 	}
 
@@ -98,8 +98,7 @@ cv::Mat LucasKanade::GradientEstimationAtX(){
 
 cv::Mat LucasKanade::GradientEstimationAtY(){
 	Frame* frame = &frames_.back();
-	cv::Mat frame_y;
-	frame->GetMatrix().copyTo(frame_y);
+	cv::Mat frame_y = cv::Mat(frame->Rows(), frame->Columns(), CV_64F);
 
 	// Iy estimation
 	for (int i = 0; i < frame->Rows(); ++i) {
@@ -109,7 +108,7 @@ cv::Mat LucasKanade::GradientEstimationAtY(){
 				if(j + k >= 0 && j + k < frame->Columns())
 					pix_sum_y += frame->GetPixel(i, j + k) * gradient[k + 2];
 			}
-			frame_y.at<uchar>(i, j) = pix_sum_y / 12.0;
+			frame_y.at<double>(i, j) = pix_sum_y / 12.0;
 		}
 	}
 	return frame_y;
@@ -117,8 +116,7 @@ cv::Mat LucasKanade::GradientEstimationAtY(){
 
 cv::Mat LucasKanade::GradientEstimationAtT(){
 	Frame* frame = &frames_.back();
-	cv::Mat frame_t;
-	frame->GetMatrix().copyTo(frame_t);
+	cv::Mat frame_t = cv::Mat(frame->Rows(), frame->Columns(), CV_64F);
 
 	// It estimation
 	if(frames_.size() > 2){
@@ -131,7 +129,7 @@ cv::Mat LucasKanade::GradientEstimationAtT(){
 						pix_sum_t += frame->GetPixel(i, j) * gradient[k];
 					}
 				}
-				frame_t.at<uchar>(i, j) = pix_sum_t / 12.0;
+				frame_t.at<double>(i, j) = pix_sum_t / 12.0;
 			}
 		}
 	}
@@ -154,15 +152,15 @@ void LucasKanade::GradientSmoothing(cv::Mat &gradX, cv::Mat &gradY, cv::Mat &gra
 			for (int k = -2; k <= 2; k++) {
 				for (int l = -2; l <= 2; l++) {
 					if (i + k >= 0 && i + k < rows && j + l >= 0 && j + l < cols) {
-						pix_sum_x += gradEX.at<uchar>(i + k, j + l) * kernel[k + 2][l + 2];
-						pix_sum_y += gradEY.at<uchar>(i + k, j + l) * kernel[k + 2][l + 2];
-						pix_sum_t += gradET.at<uchar>(i + k, j + l) * kernel[k + 2][l + 2];
+						pix_sum_x += gradEX.at<double>(i + k, j + l) * kernel[k + 2][l + 2];
+						pix_sum_y += gradEY.at<double>(i + k, j + l) * kernel[k + 2][l + 2];
+						pix_sum_t += gradET.at<double>(i + k, j + l) * kernel[k + 2][l + 2];
 					}
 				}
 			}
-			gradX.at<uchar>(i, j) = (uchar)pix_sum_x;
-			gradY.at<uchar>(i, j) = (uchar)pix_sum_y;
-			gradT.at<uchar>(i, j) = (uchar)pix_sum_t;
+			gradX.at<double>(i, j) = pix_sum_x;
+			gradY.at<double>(i, j) = pix_sum_y;
+			gradT.at<double>(i, j) = pix_sum_t;
 		}
 	}
 }
@@ -179,9 +177,9 @@ void LucasKanade::CalculateFlow(cv::Mat &velX, cv::Mat &velY) {
 	double ix, iy, it, ixx, ixy, iyy, ixt, iyt;
 	for (i = 0; i < rows; i++) {
 		for (j = 0; j < cols; j++) {
-			ix = (double)gradX.at<uchar>(i, j);
-			iy = (double)gradY.at<uchar>(i, j);
-			it = (double)gradT.at<uchar>(i, j);
+			ix = (double)gradX.at<double>(i, j);
+			iy = (double)gradY.at<double>(i, j);
+			it = (double)gradT.at<double>(i, j);
 			ixx = ix * ix;
 			ixy = ix * iy;
 			iyy = iy * iy;
