@@ -9,6 +9,7 @@
 #include "lucas_kanade.h"
 #include "video_factory.h"
 
+
 int main(int argc, char** argv) {
   if (argc < 3) {
     std::cout << "Video input file and output directory required.";

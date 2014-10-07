@@ -159,6 +159,9 @@ void LucasKanade::GradientSmoothing(cv::Mat &gradX, cv::Mat &gradY, cv::Mat &gra
 
 void LucasKanade::CalculateFlow(cv::Mat &velX, cv::Mat &velY) {
 	cv::Mat gradX, gradY, gradT;
+	cv::Matx<double, 2, 2> a;
+	cv::Matx<double, 2, 1> b;
+	cv::Matx<double, 2, 1> velVector;
 	this->GradientSmoothing(gradX, gradY, gradT);
 	const int rows = gradX.rows, cols = gradX.cols;
 	velX = cv::Mat(rows, cols, CV_64F);
@@ -175,11 +178,17 @@ void LucasKanade::CalculateFlow(cv::Mat &velX, cv::Mat &velY) {
 			iyy = iy * iy;
 			ixt = ix * it;
 			iyt = iy * it;
-			double a[2][2] = { { ixx, ixy }, { ixy, iyy } };
-			double b[2][1] = { { ixt }, { iyt } };
-			cv::Mat velVector = cv::Mat(2, 2, CV_64F, a).inv() * cv::Mat(2, 1, CV_64F, b);
-			velX.at<double>(i, j) = velVector.at<double>(0, 0);
-			velY.at<double>(i, j) = velVector.at<double>(1, 0);
+			//double a[2][2] = { { ixx, ixy }, { ixy, iyy } };
+			//double b[2][1] = { { ixt }, { iyt } };
+			a(0, 0) = ixx;
+			a(0, 1) = ixy;
+			a(1, 0) = ixy;
+			a(1, 1) = iyy;
+			b(0, 0) = ixt;
+			b(1, 0) = iyt;
+			velVector = a.inv() * b;
+			velX.at<double>(i, j) = velVector(0, 0);
+			velY.at<double>(i, j) = velVector(1, 0);
 		}
 	}
 }
