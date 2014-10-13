@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   int width = vcapture.get(CV_CAP_PROP_FRAME_WIDTH);
   int height = vcapture.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-  VideoFactory vf(dir + "\\flow_hs.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+  VideoFactory vf(dir + "flow_hs.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
 
   /*
   LucasKanade lk;
@@ -61,17 +61,21 @@ int main(int argc, char** argv) {
   }
   */
   HornSchunck hs;
-  
+  VideoFactory min(dir + "min.avi", 100, 80, vcapture.get(CV_CAP_PROP_FPS));
   cv::Mat vx, vy;
   cv::Mat v(height, width, CV_8U);
   std::cout << "\n\nStarting process.\n";
-  for (int i = 0; true; ++i) {
+  for (int i = 0; i < 100; ++i) {
     std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;
     if (capture.empty()) break;
   	frame.SetMatrix(&capture);
-    hs.AddFrame(&frame);
+
+	cv::Mat redFrame = frame.reduceImageSize(100, 80);
+	min.AddFrame(redFrame);
+
+	/*hs.AddFrame(&frame);
 
     hs.CalculateFlow(vx, vy);
     for (int ii = 0; ii < vx.rows; ++ii) {
@@ -83,6 +87,7 @@ int main(int argc, char** argv) {
       }
     }
     vf.AddFrame(v);
+	*/
   }
 
   return 0;

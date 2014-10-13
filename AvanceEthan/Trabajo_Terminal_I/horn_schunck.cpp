@@ -64,7 +64,7 @@ void HornSchunck::CalculateFlow(cv::Mat &U, cv::Mat &V) {
 			Vp.at<double>(i, j) = 0;
 		}
 	}
-	for (int k = 0; k < 100; k++) {
+	for (int k = 0; k < 40; k++) {
 		for (int i = 0; i < rows; ++i) {
 			for (int j = 0; j < cols; ++j) {
 				double cIx = Ix.at<double>(i, j);

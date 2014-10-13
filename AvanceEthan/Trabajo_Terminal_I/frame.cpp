@@ -46,3 +46,25 @@ void Frame::SetMatrix(cv::Mat* matrix) {
     matrix->copyTo(matrix_);
   }
 }
+
+cv::Mat Frame::reduceImageSize(int desWidth, int desHeight){
+	cv::Mat res = cv::Mat(desHeight, desWidth, CV_64F);
+	double size, sum;
+	int blockHeight = this->Rows() / desHeight;
+	int blockWidth = this->Columns() / desWidth;
+
+	for(int i = 0, ir = 0; i < this->Rows() && ir < desHeight; i = i + blockHeight, ir++){
+		for(int j = 0, jr = 0; j < this->Columns() && jr < desWidth; j = j + blockWidth, jr++){
+			sum = 0.0;
+			size = 0.0;
+			for(int ii = i; ii < i + blockHeight; ii++){
+				for(int jj = j; jj < j + blockWidth; jj++){
+					sum += (double)this->GetPixel(ii, jj);
+					size += 1.0;
+				}
+			}
+			res.at<double>(ir, jr) = sum / size;
+		}
+	}
+	return res;
+}

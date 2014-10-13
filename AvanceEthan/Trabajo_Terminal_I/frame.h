@@ -17,6 +17,7 @@ class Frame {
   void SetPixel(int, int, int);
   cv::Mat GetMatrix() const;
   void SetMatrix(cv::Mat*);
+  cv::Mat reduceImageSize(int desWidth, int desHeight);
 
  private:
   cv::Mat matrix_;
