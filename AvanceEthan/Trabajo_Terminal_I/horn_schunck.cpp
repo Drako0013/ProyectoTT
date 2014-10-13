@@ -47,12 +47,13 @@ cv::Mat HornSchunck::LocalAverage(cv::Mat &M) {
 }
 
 // TODO: Find a (alpha); find suitable value for k (# of iterations)
+//a = 100, k = 100
 void HornSchunck::CalculateFlow(cv::Mat &U, cv::Mat &V) {
 	cv::Mat Ix = GradientEstimationAtX();
 	cv::Mat Iy = GradientEstimationAtY();
 	cv::Mat It = GradientEstimationAtT();
 	const int rows = Ix.rows, cols = Ix.cols;
-	const double a = 0.0;
+	const double a = 100.0;
 	U = cv::Mat(rows, cols, CV_64F);
 	V = cv::Mat(rows, cols, CV_64F);
 	cv::Mat Up = cv::Mat(rows, cols, CV_64F);
@@ -63,7 +64,7 @@ void HornSchunck::CalculateFlow(cv::Mat &U, cv::Mat &V) {
 			Vp.at<double>(i, j) = 0;
 		}
 	}
-	for (int k = 0; k < 10; k++) {
+	for (int k = 0; k < 100; k++) {
 		for (int i = 0; i < rows; ++i) {
 			for (int j = 0; j < cols; ++j) {
 				double cIx = Ix.at<double>(i, j);
@@ -84,7 +85,7 @@ void HornSchunck::CalculateFlow(cv::Mat &U, cv::Mat &V) {
 
 cv::Mat HornSchunck::GradientEstimationAtX() {
 	// TODO: frameF should represent next frame, frameC = current frame
-	Frame* frameF = &frames_[frames_.size()];
+	Frame* frameF = &frames_[frames_.size() - 1];
 	Frame* frameC = &frames_[frames_.size() - frames_.size() >= 1 ? 1 : 0];
 	cv::Mat Ix = cv::Mat(frameC->Rows(), frameC->Columns(), CV_64F);
 	for (int i = 0; i < frameC->Rows(); ++i) {
@@ -97,7 +98,7 @@ cv::Mat HornSchunck::GradientEstimationAtX() {
 				pix_sum += frameC->GetPixel(i + 1, j + 1) + frameF->GetPixel(i + 1, j + 1);
 			}
 			if (i < frameC->Rows() - 1) {
-				pix_sum -= frameC->GetPixel(i + 1, j + 1) + frameF->GetPixel(i + 1, j + 1);
+				pix_sum -= frameC->GetPixel(i + 1, j) + frameF->GetPixel(i + 1, j);
 			}
 			Ix.at<double>(i, j) = pix_sum / 4.0;
 		}
@@ -107,7 +108,7 @@ cv::Mat HornSchunck::GradientEstimationAtX() {
 
 cv::Mat HornSchunck::GradientEstimationAtY() {
 	// TODO: frameF should represent next frame, frameC = current frame
-	Frame* frameF = &frames_[frames_.size()];
+	Frame* frameF = &frames_[frames_.size() - 1];
 	Frame* frameC = &frames_[frames_.size() - frames_.size() >= 1 ? 1 : 0];
 	cv::Mat Iy = cv::Mat(frameC->Rows(), frameC->Columns(), CV_64F);
 	for (int i = 0; i < frameC->Rows(); ++i) {
@@ -120,7 +121,7 @@ cv::Mat HornSchunck::GradientEstimationAtY() {
 				pix_sum += frameC->GetPixel(i + 1, j + 1) + frameF->GetPixel(i + 1, j + 1);
 			}
 			if (i < frameC->Rows() - 1) {
-				pix_sum += frameC->GetPixel(i + 1, j + 1) + frameF->GetPixel(i + 1, j + 1);
+				pix_sum += frameC->GetPixel(i + 1, j) + frameF->GetPixel(i + 1, j);
 			}
 			Iy.at<double>(i, j) = pix_sum / 4.0;
 		}
@@ -130,7 +131,7 @@ cv::Mat HornSchunck::GradientEstimationAtY() {
 
 cv::Mat HornSchunck::GradientEstimationAtT() {
 	// TODO: frameF should represent next frame, frameC = current frame
-	Frame* frameF = &frames_[frames_.size()];
+	Frame* frameF = &frames_[frames_.size() - 1];
 	Frame* frameC = &frames_[frames_.size() - frames_.size() >= 1 ? 1 : 0];
 	cv::Mat Iy = cv::Mat(frameC->Rows(), frameC->Columns(), CV_64F);
 	for (int i = 0; i < frameC->Rows(); ++i) {
@@ -143,7 +144,7 @@ cv::Mat HornSchunck::GradientEstimationAtT() {
 				pix_sum += frameF->GetPixel(i + 1, j + 1) - frameC->GetPixel(i + 1, j + 1);
 			}
 			if (i < frameC->Rows() - 1) {
-				pix_sum += frameF->GetPixel(i + 1, j + 1) - frameC->GetPixel(i + 1, j + 1);
+				pix_sum += frameF->GetPixel(i + 1, j) - frameC->GetPixel(i + 1, j);
 			}
 			Iy.at<double>(i, j) = pix_sum / 4.0;
 		}

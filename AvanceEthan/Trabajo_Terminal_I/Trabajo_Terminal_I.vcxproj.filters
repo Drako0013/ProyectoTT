@@ -21,7 +21,10 @@
     <ClInclude Include="lucas_kanade.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VideoFactory.h">
+    <ClInclude Include="horn_schunck.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="video_factory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,7 +38,10 @@
     <ClCompile Include="lucas_kanade.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VideoFactory.cpp">
+    <ClCompile Include="horn_schunck.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="video_factory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

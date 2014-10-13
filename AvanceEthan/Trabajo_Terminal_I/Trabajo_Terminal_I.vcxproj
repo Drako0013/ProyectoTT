@@ -80,14 +80,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="frame.h" />
+    <ClInclude Include="horn_schunck.h" />
     <ClInclude Include="lucas_kanade.h" />
-    <ClInclude Include="VideoFactory.h" />
+    <ClInclude Include="video_factory.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="frame.cpp" />
+    <ClCompile Include="horn_schunck.cpp" />
     <ClCompile Include="lucas_kanade.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="VideoFactory.cpp" />
+    <ClCompile Include="video_factory.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
