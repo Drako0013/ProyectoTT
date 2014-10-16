@@ -48,7 +48,7 @@ void Frame::SetMatrix(cv::Mat* matrix) {
 }
 
 cv::Mat Frame::reduceImageSize(int desWidth, int desHeight){
-	cv::Mat res = cv::Mat(desHeight, desWidth, CV_64F);
+	cv::Mat res = cv::Mat(desHeight, desWidth, CV_8U);
 	double size, sum;
 	int blockHeight = this->Rows() / desHeight;
 	int blockWidth = this->Columns() / desWidth;
@@ -63,7 +63,7 @@ cv::Mat Frame::reduceImageSize(int desWidth, int desHeight){
 					size += 1.0;
 				}
 			}
-			res.at<double>(ir, jr) = sum / size;
+			res.at<uchar>(ir, jr) = (uchar)(sum / size);
 		}
 	}
 	return res;

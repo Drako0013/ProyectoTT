@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <cstdio>
 
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -73,6 +74,17 @@ int main(int argc, char** argv) {
   	frame.SetMatrix(&capture);
 
 	cv::Mat redFrame = frame.reduceImageSize(100, 80);
+	//Revision de los resultados correcta
+	/*
+	FILE *out = fopen("salida.txt", "w");
+	for(int i = 0; i < 100; i++){
+		for(int j = 0; j < 80; j++){
+			fprintf(out, "%10lf ", redFrame.at<double>(j, i));
+		}
+		fprintf(out, "\n");
+	}
+	*/
+
 	min.AddFrame(redFrame);
 
 	/*hs.AddFrame(&frame);
