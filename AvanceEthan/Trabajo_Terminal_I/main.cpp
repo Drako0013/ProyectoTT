@@ -28,12 +28,13 @@ int main(int argc, char** argv) {
 
   cv::Mat capture;
   Frame frame(true);
+  Frame redFrame(false);
   std::string dir = std::string(argv[1]);
 
   int width = vcapture.get(CV_CAP_PROP_FRAME_WIDTH);
   int height = vcapture.get(CV_CAP_PROP_FRAME_HEIGHT);
 
-  VideoFactory vf(dir + "flow_hs.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+  //VideoFactory vf(dir + "flow_hs.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
 
   /*
   LucasKanade lk;
@@ -64,7 +65,7 @@ int main(int argc, char** argv) {
   HornSchunck hs;
   VideoFactory min(dir + "min.avi", 100, 80, vcapture.get(CV_CAP_PROP_FPS));
   cv::Mat vx, vy;
-  cv::Mat v(height, width, CV_8U);
+  cv::Mat v(80, 100, CV_8U);
   std::cout << "\n\nStarting process.\n";
   for (int i = 0; i < 100; ++i) {
     std::cout << "Processing frame " << i << ".\n";
@@ -72,23 +73,10 @@ int main(int argc, char** argv) {
     vcapture >> capture;
     if (capture.empty()) break;
   	frame.SetMatrix(&capture);
-
-	cv::Mat redFrame = frame.reduceImageSize(100, 80);
-	//Revision de los resultados correcta
-	/*
-	FILE *out = fopen("salida.txt", "w");
-	for(int i = 0; i < 100; i++){
-		for(int j = 0; j < 80; j++){
-			fprintf(out, "%10lf ", redFrame.at<double>(j, i));
-		}
-		fprintf(out, "\n");
-	}
-	*/
-
-	min.AddFrame(redFrame);
-
-	/*hs.AddFrame(&frame);
-
+	cv::Mat redMatrix = frame.reduceImageSize(100, 80);
+	//min.AddFrame(redMatrix);
+	redFrame.SetMatrix(&redMatrix);
+	hs.AddFrame(&redFrame);
     hs.CalculateFlow(vx, vy);
     for (int ii = 0; ii < vx.rows; ++ii) {
       for (int jj = 0; jj < vx.cols; ++jj) {
@@ -98,8 +86,8 @@ int main(int argc, char** argv) {
         v.at<uchar>(ii, jj) = flow;
       }
     }
-    vf.AddFrame(v);
-	*/
+    min.AddFrame(v);
+
   }
 
   return 0;

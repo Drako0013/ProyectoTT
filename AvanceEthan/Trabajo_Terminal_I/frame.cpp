@@ -19,9 +19,10 @@ int Frame::Columns() const{
 }
 
 int Frame::GetPixel(int x, int y) const{
-  if (grayscale_) return matrix_.at<uchar>(x, y);
-  cv::Vec3b v = matrix_.at<cv::Vec3b>(x, y);
-  return (v[2] << 16) + (v[1] << 8) + v[0];
+  //if (grayscale_) 
+	  return matrix_.at<uchar>(x, y);
+  //cv::Vec3b v = matrix_.at<cv::Vec3b>(x, y);
+  //return (v[2] << 16) + (v[1] << 8) + v[0];
 }
 
 void Frame::SetPixel(int x, int y, int rgb) {
