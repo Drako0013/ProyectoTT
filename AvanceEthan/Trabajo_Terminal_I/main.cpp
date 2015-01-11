@@ -63,17 +63,28 @@ int main(int argc, char** argv) {
   }
   */
   HornSchunck hs;
-  VideoFactory min(dir + "min.avi", 100, 80, vcapture.get(CV_CAP_PROP_FPS));
+  int widthF, heightF, ratio;
+  ratio = width / 100;
+  if(ratio == 0){
+	widthF = width;
+	heightF = height;
+  } else {
+	widthF = width / ratio;
+	heightF = height / ratio;
+  }
+  VideoFactory min(dir + "min.avi", widthF, heightF, vcapture.get(CV_CAP_PROP_FPS));
   cv::Mat vx, vy;
-  cv::Mat v(80, 100, CV_8U);
+  cv::Mat v(heightF, widthF, CV_8U);
   std::cout << "\n\nStarting process.\n";
-  for (int i = 0; i < 100; ++i) {
-    std::cout << "Processing frame " << i << ".\n";
+  std::cout << heightF << " x " << widthF << std::endl;
+  std::cout << vcapture.get(CV_CAP_PROP_FPS) << " FPS" << std::endl;
+  for (int i = 0; i < 500; ++i) {
+    //std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;
     if (capture.empty()) break;
   	frame.SetMatrix(&capture);
-	cv::Mat redMatrix = frame.reduceImageSize(100, 80);
+	cv::Mat redMatrix = frame.reduceImageSize(widthF, heightF);
 	//min.AddFrame(redMatrix);
 	redFrame.SetMatrix(&redMatrix);
 	hs.AddFrame(&redFrame);
