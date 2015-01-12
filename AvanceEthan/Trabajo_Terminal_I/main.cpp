@@ -1,6 +1,6 @@
+#include <stdio.h>
 #include <string>
 #include <iostream>
-#include <cstdio>
 
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -10,7 +10,6 @@
 #include "lucas_kanade.h"
 #include "video_factory.h"
 #include "horn_schunck.h"
-
 
 int main(int argc, char** argv) {
   if (argc < 3) {
@@ -25,18 +24,15 @@ int main(int argc, char** argv) {
     std::cout << "Could not initialize capturing.\n";
     return 0;
   }
-
+  
   cv::Mat capture;
-  Frame frame(true);
-  Frame redFrame(false);
   std::string dir = std::string(argv[1]);
 
-  int width = vcapture.get(CV_CAP_PROP_FRAME_WIDTH);
-  int height = vcapture.get(CV_CAP_PROP_FRAME_HEIGHT);
+  int width = 320;
+  int height = 240;
 
-  //VideoFactory vf(dir + "flow_hs.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+  VideoFactory vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
 
-  /*
   LucasKanade lk;
   
   cv::Mat vx, vy;
@@ -47,12 +43,17 @@ int main(int argc, char** argv) {
 
     vcapture >> capture;
     if (capture.empty()) break;
-  	frame.SetMatrix(&capture);
-    lk.AddFrame(&frame);
+
+    if (i % 5) continue;
+
+  	Frame* frame = new Frame(&capture);
+    frame->Rescale(width, height);
+    frame->GetMatrixOnCache();
+    lk.AddFrame(frame);
 
     lk.CalculateFlow(vx, vy);
-    for (int ii = 0; ii < vx.rows; ++ii) {
-      for (int jj = 0; jj < vx.cols; ++jj) {
+    for (int ii = 0; ii < height; ++ii) {
+      for (int jj = 0; jj < width; ++jj) {
         double x = vx.at<double>(ii, jj);
         double y = vy.at<double>(ii, jj);
         uchar flow = (x > 3.5 || y > 3.5)? 255: 0;
@@ -61,8 +62,8 @@ int main(int argc, char** argv) {
     }
     vf.AddFrame(v);
   }
-  */
-  HornSchunck hs;
+  
+  /*HornSchunck hs;
   int widthF, heightF, ratio;
   ratio = width / 100;
   if(ratio == 0){
@@ -84,7 +85,7 @@ int main(int argc, char** argv) {
     vcapture >> capture;
     if (capture.empty()) break;
   	frame.SetMatrix(&capture);
-	cv::Mat redMatrix = frame.reduceImageSize(widthF, heightF);
+	cv::Mat redMatrix = frame.Rescale(widthF, heightF);
 	//min.AddFrame(redMatrix);
 	redFrame.SetMatrix(&redMatrix);
 	hs.AddFrame(&redFrame);
@@ -99,7 +100,7 @@ int main(int argc, char** argv) {
     }
     min.AddFrame(v);
 
-  }
+  }*/
 
   return 0;
 }

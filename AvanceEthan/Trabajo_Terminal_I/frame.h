@@ -8,8 +8,8 @@
 class Frame {
  public:
   // Constructors
-  Frame(bool = false);
-  Frame(cv::Mat*, bool = false);
+  Frame(bool = true);
+  Frame(cv::Mat*, bool = true);
 
   // Destructor
   ~Frame();
@@ -27,10 +27,17 @@ class Frame {
   cv::Mat GetMatrix() const;
   void SetMatrix(cv::Mat*);
 
+  // Cache methods
+  void GetMatrixOnCache();
+  void GetCacheOnMatrix();
+
  private:
   // Member variables
-  cv::Mat matrix_;
-  bool grayscale_;
+  cv::Mat matrix;
+  int* matrix_cache;
+  bool grayscale, cached;
+
+  void ResizeCache(int, int);
 };
 
 #endif

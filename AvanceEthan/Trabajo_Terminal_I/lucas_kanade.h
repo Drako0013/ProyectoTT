@@ -28,7 +28,7 @@ class LucasKanade {
   void SmoothFrame(int);
   void GradientSmoothing(cv::Mat&, cv::Mat&, cv::Mat&);
   
-  std::vector<Frame> frames_;
+  std::vector<Frame*> frames_;
 };
 
 #endif

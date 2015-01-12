@@ -16,19 +16,21 @@ const double LucasKanade::kKernel[5][5] = {
 };
 
 cv::Mat LucasKanade::AddFrame(Frame* frame) {
-  frames_.push_back(*frame);
+  frames_.push_back(frame);
   if (kGradientEnd - kGradientBegin + 1 < frames_.size()) RemoveFrame();
   SmoothFrame(frames_.size() - 1);
-  return frames_.back().GetMatrix();
+  return frames_.back()->GetMatrix();
 }
 
 void LucasKanade::RemoveFrame() {
   if (frames_.size() == 0) return;
+  Frame* frame_to_delete = frames_[0];
   frames_.erase(frames_.begin());
+  delete frame_to_delete;
 }
 
 void LucasKanade::SmoothFrame(int index) {
-  Frame* frame = &frames_[index];
+  Frame* frame = frames_[index];
 
   // x-Spatial Smoothing
   int* pixels = new int[kSpatialSmoothSize];
@@ -65,7 +67,7 @@ void LucasKanade::SmoothFrame(int index) {
   // Temporal Smoothing
   if (index > 0) {
     double kalpha = 1.0 - kAlpha;
-    Frame* prev = &frames_[index - 1];
+    Frame* prev = frames_[index - 1];
 
     for (int i = 0; i < frame->Rows(); ++i) {
       for (int j = 0; j < frame->Columns(); ++j) {
@@ -78,7 +80,7 @@ void LucasKanade::SmoothFrame(int index) {
 }
 
 cv::Mat LucasKanade::GradientEstimationAtX() {
-  Frame* frame = &frames_[frames_.size() / 2];
+  Frame* frame = frames_[frames_.size() / 2];
   cv::Mat Ix = cv::Mat(frame->Rows(), frame->Columns(), CV_64F);
   
   for (int i = 0; i < frame->Rows(); ++i) {
@@ -94,7 +96,7 @@ cv::Mat LucasKanade::GradientEstimationAtX() {
 }
 
 cv::Mat LucasKanade::GradientEstimationAtY() {
-  Frame* frame = &frames_[frames_.size() / 2];
+  Frame* frame = frames_[frames_.size() / 2];
   cv::Mat Iy = cv::Mat(frame->Rows(), frame->Columns(), CV_64F);
   
   for (int i = 0; i < frame->Rows(); ++i) {
@@ -111,15 +113,15 @@ cv::Mat LucasKanade::GradientEstimationAtY() {
 
 cv::Mat LucasKanade::GradientEstimationAtT() {
   int index = frames_.size() / 2;
-  cv::Mat It = cv::Mat(frames_[index].Rows(), frames_[index].Columns(), CV_64F);
+  cv::Mat It = cv::Mat(frames_[index]->Rows(), frames_[index]->Columns(), CV_64F);
   if (frames_.size() < kGradientEnd - kGradientBegin + 1) return It;
 
-  for (int i = 0; i < frames_[index].Rows(); ++i) {
-    for (int j = 0; j < frames_[index].Columns(); ++j) {
+  for (int i = 0; i < frames_[index]->Rows(); ++i) {
+    for (int j = 0; j < frames_[index]->Columns(); ++j) {
       int pix_sum = 0;
       for (int k = kGradientBegin; k <= kGradientEnd; ++k)
         if (0 <= index + k && index + k < frames_.size())
-          pix_sum += frames_[index + k].GetPixel(i, j) * kGradient[k - kGradientBegin];
+          pix_sum += frames_[index + k]->GetPixel(i, j) * kGradient[k - kGradientBegin];
       It.at<double>(i, j) = static_cast<double>(pix_sum) / 12.0;
     }
   }
