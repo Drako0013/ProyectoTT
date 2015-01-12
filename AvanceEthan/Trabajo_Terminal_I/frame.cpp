@@ -77,7 +77,6 @@ void Frame::GetMatrixOnCache() {
   int rows = Rows();
   int cols = Columns();
   ResizeCache(rows, cols);
-  
   // Fast caching with pointers
   int* pointer = matrix_cache;
   for (int i = 0; i < rows; ++i) {
@@ -99,18 +98,25 @@ void Frame::GetMatrixOnCache() {
 }
 
 void Frame::GetCacheOnMatrix() {
-  /*for (int i = 0; i < cache.size(); ++i) {
+  if (!cached) return;
+  int rows = Rows();
+  int cols = Columns();
+  // Fast caching with pointers
+  int* pointer = matrix_cache;
+  for (int i = 0; i < rows; ++i) {
     uchar* row = matrix.ptr<uchar>(i);
-    for (int j = 0; j < cache[i].size(); ++j) {
+    for (int j = 0; j < cols; ++j, ++pointer) {
       if (grayscale) {
-        row[j] = cache[i][j];
+        // Simple grayscale
+        *(row++) = *pointer;
       } else {
-        row[j * 3] = cache[i][j] & 255;
-        row[j * 3 + 1] = (cache[i][j] >> 8) & 255;
-        row[j * 3 + 2] = (cache[i][j] >> 16) & 255;
+        // Integer conversion to RGB
+        *(row++) = (*pointer >> 16) & 255;
+        *(row++) = (*pointer >> 8) & 255;
+        *(row++) = *pointer & 255;
       }
     }
-  }*/
+  }
 }
 
 void Frame::ResizeCache(int rows, int columns) {

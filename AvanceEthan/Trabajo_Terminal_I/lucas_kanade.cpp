@@ -16,59 +16,103 @@ const double LucasKanade::kKernel[5][5] = {
 };
 
 cv::Mat LucasKanade::AddFrame(Frame* frame) {
-  frames_.push_back(frame);
-  if (kGradientEnd - kGradientBegin + 1 < frames_.size()) RemoveFrame();
-  SmoothFrame(frames_.size() - 1);
-  return frames_.back()->GetMatrix();
+  frames.push_back(frame);
+  int total_frames = kGradientEnd - kGradientBegin + 1;
+  if (total_frames < frames.size()) RemoveFrame();
+  SmoothFrame(frames.size() - 1);
+  return frames.back()->GetMatrix();
 }
 
 void LucasKanade::RemoveFrame() {
-  if (frames_.size() == 0) return;
-  Frame* frame_to_delete = frames_[0];
-  frames_.erase(frames_.begin());
+  if (frames.size() == 0) return;
+  Frame* frame_to_delete = frames[0];
+  frames.erase(frames.begin());
   delete frame_to_delete;
 }
 
+void LucasKanade::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
+	double* grad_x, *grad_y, *grad_t;
+	GradientSmoothing(&grad_x, &grad_y, &grad_t);
+
+	cv::Matx<double, 2, 2> a;
+	cv::Matx<double, 2, 1> b, vel_vector;
+	double ix, iy, it, ixx, ixy, iyy, ixt, iyt;
+  int rows = frames[frames.size() / 2]->Rows();
+  int cols = frames[frames.size() / 2]->Columns();
+
+	vel_x = cv::Mat(rows, cols, CV_64F);
+	vel_y = cv::Mat(rows, cols, CV_64F);
+
+	for (int i = 0; i < rows; ++i) {
+    double* ptr_x = vel_x.ptr<double>(i);
+    double* ptr_y = vel_y.ptr<double>(i);
+		for (int j = 0; j < cols; ++j, ++ptr_x, ++ptr_y) {
+			ix = grad_x[i * cols + j];
+			iy = grad_y[i * cols + j];
+			it = grad_t[i * cols + j];
+
+      // Calculates gradient values
+			ixx = ix * ix; ixy = ix * iy; iyy = iy * iy;
+			ixt = ix * it; iyt = iy * it;
+
+      // [Ix2 IxIy][IxIy Iy2]
+			a(0, 0) = ixx; a(0, 1) = ixy;
+			a(1, 0) = ixy; a(1, 1) = iyy;
+      
+      // -[IxIt IyIt]
+			b(0, 0) = -ixt;
+      b(1, 0) = -iyt;
+
+      // Solve linear equation
+			vel_vector = a.inv() * b;
+			*ptr_x = vel_vector(0, 0);
+			*ptr_y = vel_vector(1, 0);
+		}
+	}
+  delete [] grad_x;
+  delete [] grad_y;
+  delete [] grad_t;
+}
+
 void LucasKanade::SmoothFrame(int index) {
-  Frame* frame = frames_[index];
+  Frame* frame = frames[index];
+  int rows = frame->Rows();
+  int cols = frame->Columns();
 
   // x-Spatial Smoothing
   int* pixels = new int[kSpatialSmoothSize];
-  for (int i = 0; i < frame->Rows(); ++i) {
-    double pix_sum = 0;
+  for (int i = 0; i < rows; ++i) {
+    int pix_sum = 0, this_pix;
     std::fill(pixels, pixels + kSpatialSmoothSize, 0);
-    for (int j = 0; j < frame->Columns(); ++j) {
-      int this_pix = frame->GetPixel(i, j);
-
+    for (int j = 0; j < cols; ++j) {
+      this_pix = frame->GetPixel(i, j);
       pix_sum += this_pix - pixels[j % kSpatialSmoothSize];
       pixels[j % kSpatialSmoothSize] = this_pix;
 
-      this_pix = pix_sum / std::min(kSpatialSmoothSize, j + 1);
+      this_pix = static_cast<double>(pix_sum) / std::min(kSpatialSmoothSize, j + 1);
       frame->SetPixel(i, j, this_pix);
     }
   }
 
   // y-Spatial Smoothing
   for (int i = 0; i < frame->Columns(); ++i) {
-    double pix_sum = 0;
+    int pix_sum = 0, this_pix;
     std::fill(pixels, pixels + kSpatialSmoothSize, 0);
     for (int j = 0; j < frame->Rows(); ++j) {
-      int this_pix = frame->GetPixel(j, i);
-
+      this_pix = frame->GetPixel(j, i);
       pix_sum += this_pix - pixels[j % kSpatialSmoothSize];
       pixels[j % kSpatialSmoothSize] = this_pix;
 
-      this_pix = pix_sum / std::min(kSpatialSmoothSize, j + 1);
+      this_pix = static_cast<double>(pix_sum) / std::min(kSpatialSmoothSize, j + 1);
       frame->SetPixel(j, i, this_pix);
     }
   }
-  delete pixels;
+  delete[] pixels;
 
   // Temporal Smoothing
   if (index > 0) {
     double kalpha = 1.0 - kAlpha;
-    Frame* prev = frames_[index - 1];
-
+    Frame* prev = frames[index - 1];
     for (int i = 0; i < frame->Rows(); ++i) {
       for (int j = 0; j < frame->Columns(); ++j) {
         int prev_pix = prev->GetPixel(i, j);
@@ -79,118 +123,102 @@ void LucasKanade::SmoothFrame(int index) {
   }
 }
 
-cv::Mat LucasKanade::GradientEstimationAtX() {
-  Frame* frame = frames_[frames_.size() / 2];
-  cv::Mat Ix = cv::Mat(frame->Rows(), frame->Columns(), CV_64F);
+void LucasKanade::GradientSmoothing(double** grad_x, double** grad_y, double** grad_t){
+	double* grad_ex = GradientEstimationAtX();
+	double* grad_ey = GradientEstimationAtY();
+	double* grad_et = GradientEstimationAtT();
+  int rows = frames[frames.size() / 2]->Rows();
+  int cols = frames[frames.size() / 2]->Columns();
   
-  for (int i = 0; i < frame->Rows(); ++i) {
-    for (int j = 0; j < frame->Columns(); ++j) {
-      int pix_sum = 0;
-      for (int k = kGradientBegin; k <= kGradientEnd; ++k)
-        if (0 <= j + k && j + k < frame->Columns())
-          pix_sum += frame->GetPixel(i, j + k) * kGradient[k - kGradientBegin];
-      Ix.at<double>(i, j) = static_cast<double>(pix_sum) / 12.0;
-    }
-  }
-  return Ix;
-}
+  *grad_x = new double[rows * cols];
+  *grad_y = new double[rows * cols];
+  *grad_t = new double[rows * cols];
 
-cv::Mat LucasKanade::GradientEstimationAtY() {
-  Frame* frame = frames_[frames_.size() / 2];
-  cv::Mat Iy = cv::Mat(frame->Rows(), frame->Columns(), CV_64F);
-  
-  for (int i = 0; i < frame->Rows(); ++i) {
-    for (int j = 0; j < frame->Columns(); ++j) {
-      int pix_sum = 0;
-      for (int k = kGradientBegin; k <= kGradientEnd; ++k)
-        if (0 <= i + k && i + k < frame->Rows())
-          pix_sum += frame->GetPixel(i + k, j) * kGradient[k - kGradientBegin];
-      Iy.at<double>(i, j) = static_cast<double>(pix_sum) / 12.0;
-    }
-  }
-  return Iy;
-}
+  double* ptr_x = *grad_x;
+  double* ptr_y = *grad_y;
+  double* ptr_t = *grad_t;
 
-cv::Mat LucasKanade::GradientEstimationAtT() {
-  int index = frames_.size() / 2;
-  cv::Mat It = cv::Mat(frames_[index]->Rows(), frames_[index]->Columns(), CV_64F);
-  if (frames_.size() < kGradientEnd - kGradientBegin + 1) return It;
-
-  for (int i = 0; i < frames_[index]->Rows(); ++i) {
-    for (int j = 0; j < frames_[index]->Columns(); ++j) {
-      int pix_sum = 0;
-      for (int k = kGradientBegin; k <= kGradientEnd; ++k)
-        if (0 <= index + k && index + k < frames_.size())
-          pix_sum += frames_[index + k]->GetPixel(i, j) * kGradient[k - kGradientBegin];
-      It.at<double>(i, j) = static_cast<double>(pix_sum) / 12.0;
-    }
-  }
-  return It;
-}
-
-// SPRINT: OPTIMIZE THE FOLLOWING
-
-void LucasKanade::GradientSmoothing(cv::Mat &gradX, cv::Mat &gradY, cv::Mat &gradT){
-	cv::Mat gradEX = this->GradientEstimationAtX();
-	cv::Mat gradEY = this->GradientEstimationAtY();
-	cv::Mat gradET = this->GradientEstimationAtT();
-	gradEX.copyTo(gradX);
-	gradEY.copyTo(gradY);
-	gradET.copyTo(gradT);
-	const int rows = gradEX.rows;
-	const int cols = gradEX.cols;
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
+	for (int i = 0; i < rows; ++i) {
+		for (int j = 0; j < cols; ++j, ++ptr_x, ++ptr_y, ++ptr_t) {
 			double pix_sum_x, pix_sum_y, pix_sum_t;
 			pix_sum_x = pix_sum_y = pix_sum_t = 0;
-			for (int k = -2; k <= 2; k++) {
-				for (int l = -2; l <= 2; l++) {
+			for (int k = kGradientBegin; k <= kGradientEnd; ++k) {
+				for (int l = kGradientBegin; l <= kGradientEnd; ++l) {
 					if (i + k >= 0 && i + k < rows && j + l >= 0 && j + l < cols) {
-						pix_sum_x += gradEX.at<double>(i + k, j + l) * kKernel[k + 2][l + 2];
-						pix_sum_y += gradEY.at<double>(i + k, j + l) * kKernel[k + 2][l + 2];
-						pix_sum_t += gradET.at<double>(i + k, j + l) * kKernel[k + 2][l + 2];
+						pix_sum_x += grad_ex[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
+						pix_sum_y += grad_ey[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
+						pix_sum_t += grad_et[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
 					}
 				}
 			}
-			gradX.at<double>(i, j) = pix_sum_x;
-			gradY.at<double>(i, j) = pix_sum_y;
-			gradT.at<double>(i, j) = pix_sum_t;
+			*ptr_x = pix_sum_x;
+			*ptr_y = pix_sum_y;
+			*ptr_t = pix_sum_t;
 		}
 	}
+  delete [] grad_ex;
+  delete [] grad_ey;
+  delete [] grad_et;
 }
 
-void LucasKanade::CalculateFlow(cv::Mat &velX, cv::Mat &velY) {
-	cv::Mat gradX, gradY, gradT;
-	cv::Matx<double, 2, 2> a;
-	cv::Matx<double, 2, 1> b;
-	cv::Matx<double, 2, 1> velVector;
-	this->GradientSmoothing(gradX, gradY, gradT);
-	const int rows = gradX.rows, cols = gradX.cols;
-	velX = cv::Mat(rows, cols, CV_64F);
-	velY = cv::Mat(rows, cols, CV_64F);
-	int i, j;
-	double ix, iy, it, ixx, ixy, iyy, ixt, iyt;
-	for (i = 0; i < rows; i++) {
-		for (j = 0; j < cols; j++) {
-			ix = (double)gradX.at<double>(i, j);
-			iy = (double)gradY.at<double>(i, j);
-			it = (double)gradT.at<double>(i, j);
-			ixx = ix * ix;
-			ixy = ix * iy;
-			iyy = iy * iy;
-			ixt = ix * it;
-			iyt = iy * it;
-			//double a[2][2] = { { ixx, ixy }, { ixy, iyy } };
-			//double b[2][1] = { { ixt }, { iyt } };
-			a(0, 0) = ixx;
-			a(0, 1) = ixy;
-			a(1, 0) = ixy;
-			a(1, 1) = iyy;
-			b(0, 0) = ixt;
-			b(1, 0) = iyt;
-			velVector = a.inv() * b;
-			velX.at<double>(i, j) = velVector(0, 0);
-			velY.at<double>(i, j) = velVector(1, 0);
-		}
-	}
+double* LucasKanade::GradientEstimationAtX() {
+  Frame* frame = frames[frames.size() / 2];
+  int rows = frame->Rows();
+  int cols = frame->Columns();
+  double* ix = new double[rows * cols];
+
+  double* ptr = ix;
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j, ++ptr) {
+      int pix_sum = 0;
+      for (int k = kGradientBegin; k <= kGradientEnd; ++k) {
+        if (j + k < 0 || cols <= j + k) continue;
+        pix_sum += frame->GetPixel(i, j + k) * kGradient[k - kGradientBegin];
+      }
+      *ptr = static_cast<double>(pix_sum) / 12.0;
+    }
+  }
+  return ix;
+}
+
+double* LucasKanade::GradientEstimationAtY() {
+  Frame* frame = frames[frames.size() / 2];
+  int rows = frame->Rows();
+  int cols = frame->Columns();
+  double* iy = new double[rows * cols];
+  
+  double* ptr = iy;
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j, ++ptr) {
+      int pix_sum = 0;
+      for (int k = kGradientBegin; k <= kGradientEnd; ++k) {
+        if (i + k < 0 || rows <= i + k) continue;
+        pix_sum += frame->GetPixel(i + k, j) * kGradient[k - kGradientBegin];
+      }
+      *ptr = static_cast<double>(pix_sum) / 12.0;
+    }
+  }
+  return iy;
+}
+
+double* LucasKanade::GradientEstimationAtT() {
+  int index = frames.size() / 2;
+  int rows = frames[index]->Rows();
+  int cols = frames[index]->Columns();
+  double* it = new double[rows * cols];
+  std::fill(it, it + rows * cols, 0.0);
+
+  if (frames.size() < kGradientEnd - kGradientBegin + 1) return it;
+
+  double* ptr = it;
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j, ++ptr) {
+      int pix_sum = 0;
+      for (int k = kGradientBegin; k <= kGradientEnd; ++k)
+        if (0 <= index + k && index + k < frames.size())
+          pix_sum += frames[index + k]->GetPixel(i, j) * kGradient[k - kGradientBegin];
+      *ptr = static_cast<double>(pix_sum) / 12.0;
+    }
+  }
+  return it;
 }

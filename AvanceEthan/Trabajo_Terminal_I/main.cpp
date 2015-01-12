@@ -38,13 +38,19 @@ int main(int argc, char** argv) {
   cv::Mat vx, vy;
   cv::Mat v(height, width, CV_8U);
   std::cout << "\n\nStarting process.\n";
-  for (int i = 0; true; ++i) {
+
+  Frame* result = new Frame(false);
+  for (int i = 0; true && i < 1000; ++i) {
     std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;
     if (capture.empty()) break;
 
-    if (i % 5) continue;
+    if (!i) {
+      result->SetMatrix(&capture);
+      result->Rescale(width, height);
+      result->GetMatrixOnCache();
+    }
 
   	Frame* frame = new Frame(&capture);
     frame->Rescale(width, height);
@@ -52,15 +58,19 @@ int main(int argc, char** argv) {
     lk.AddFrame(frame);
 
     lk.CalculateFlow(vx, vy);
-    for (int ii = 0; ii < height; ++ii) {
-      for (int jj = 0; jj < width; ++jj) {
-        double x = vx.at<double>(ii, jj);
-        double y = vy.at<double>(ii, jj);
-        uchar flow = (x > 3.5 || y > 3.5)? 255: 0;
-        v.at<uchar>(ii, jj) = flow;
+    for (int x = 0; x < height; ++x) {
+      uchar* ptr = v.ptr<uchar>(x);
+      double* ptr_vx = vx.ptr<double>(x);
+      double* ptr_vy = vy.ptr<double>(x);
+      for (int y = 0; y < width; ++y, ++ptr, ++ptr_vx, ++ptr_vy) {
+        double X = *ptr_vx, Y = *ptr_vy;
+        uchar flow_x = (X < -50 || 50 < X)? 255: 0;
+        uchar flow_y = (Y < -50 || 50 < X)? 255: 0;
+        result->SetPixel(x, y, flow_x << 16 | flow_y);
       }
     }
-    vf.AddFrame(v);
+    result->GetCacheOnMatrix();
+    vf.AddFrame(result->GetMatrix());
   }
   
   /*HornSchunck hs;

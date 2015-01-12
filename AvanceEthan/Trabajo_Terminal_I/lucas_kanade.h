@@ -10,14 +10,15 @@
 
 class LucasKanade {
  public:
+  // Frame control methods
   cv::Mat AddFrame(Frame*);
   void RemoveFrame();
-  cv::Mat GradientEstimationAtX();
-  cv::Mat GradientEstimationAtY();
-  cv::Mat GradientEstimationAtT();
+
+  // Flow calculation method
   void CalculateFlow(cv::Mat&, cv::Mat&);
 
  private:
+  // Algorithm constants 
   static const double kAlpha;
   static const int kSpatialSmoothSize;
   static const int kGradientBegin;
@@ -25,10 +26,17 @@ class LucasKanade {
   static const int kGradient[];
   static const double kKernel[5][5];
 
+  // Smoothing methods
   void SmoothFrame(int);
-  void GradientSmoothing(cv::Mat&, cv::Mat&, cv::Mat&);
+  void GradientSmoothing(double**, double**, double**);
   
-  std::vector<Frame*> frames_;
+  // Gradient methods
+  double* GradientEstimationAtX();
+  double* GradientEstimationAtY();
+  double* GradientEstimationAtT();
+  
+  // Member variables
+  std::vector<Frame*> frames;
 };
 
 #endif

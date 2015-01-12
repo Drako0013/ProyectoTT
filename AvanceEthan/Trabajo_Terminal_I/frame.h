@@ -32,12 +32,12 @@ class Frame {
   void GetCacheOnMatrix();
 
  private:
+  void ResizeCache(int, int);
+
   // Member variables
   cv::Mat matrix;
   int* matrix_cache;
   bool grayscale, cached;
-
-  void ResizeCache(int, int);
 };
 
 #endif
