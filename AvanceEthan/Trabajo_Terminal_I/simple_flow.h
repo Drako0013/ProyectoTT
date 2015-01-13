@@ -18,6 +18,7 @@ public:
 	void RemoveFrame();
 	// Flow calculation method
 	void CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y);
+	double getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int x, int y);
 private:
 	std::vector<Frame*> frames;
 	int GetEnergy(Frame &f1, int x1, int y1, Frame &f2, int x2, int y2);
