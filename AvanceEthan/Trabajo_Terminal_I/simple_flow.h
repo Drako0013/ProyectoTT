@@ -25,9 +25,11 @@ private:
 	double GetWr(std::vector<int> &energyArray);
 	double GetWd(int x0, int y0, int x, int y);
 	double GetWc(Frame &f1, int x0, int y0, int x, int y);
+	double SimpleFlow::GetWc(cv::Mat &f1, int x0, int y0, int x, int y);
 	static const int NeighborhoodSize = 5;
-	const double rd = 5.5;
-	const double rc = 0.08;
+	static const double rd;
+	static const double rc;
+	static const double occlusion_limit;
 };
 
 

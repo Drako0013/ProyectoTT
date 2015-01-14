@@ -1,5 +1,9 @@
 #include "simple_flow.h"
 
+const double SimpleFlow::rd = 5.5;
+const double SimpleFlow::rc = 0.08;
+const double SimpleFlow::occlusion_limit = 1.0; //this value has to be defined correctly
+
 cv::Mat SimpleFlow::AddFrame(Frame* frame) {
 	frames.push_back(frame);
 	if (frames.size() > 2) RemoveFrame();
@@ -43,7 +47,8 @@ double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
 }
 
 double SimpleFlow::GetWc(cv::Mat &f1, int x0, int y0, int x, int y){
-	double norm = (double)( f1[x0][y0] - f1[x][y] );
+	Frame f(&f1, true);
+	double norm = (double)( f.GetPixel(x0, y0) - f.GetPixel(x, y) );
 	return std::exp( -norm / (2 * rc) );
 }
 
@@ -68,8 +73,6 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 
 	const int n = SimpleFlow::NeighborhoodSize;
 
-	double occlusion_limit = 1.0; //this value has to be defined
-
 	int rows = frames[0]->Rows();
 	int cols = frames[0]->Columns();
 
@@ -80,16 +83,18 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 
 	vel_x = cv::Mat(rows, cols, CV_64F);
 	vel_y = cv::Mat(rows, cols, CV_64F);
+	cv::Mat vel_x_inv = cv::Mat(rows, cols, CV_64F);
+	cv::Mat vel_y_inv = cv::Mat(rows, cols, CV_64F);
 	cv::Mat velf_x = cv::Mat(rows, cols, CV_64F);
 	cv::Mat velf_y = cv::Mat(rows, cols, CV_64F);
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_x = vel_x.ptr<double>(x);
 		double* ptr_y = vel_y.ptr<double>(x);
 
-		double* ptr_x_inv = vel_x.ptr<double>(x);
-		double* ptr_y_inv = vel_y.ptr<double>(x);
+		double* ptr_x_inv = vel_x_inv.ptr<double>(x);
+		double* ptr_y_inv = vel_y_inv.ptr<double>(x);
 
-		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y) {
+		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y, ++ptr_x_inv, ++ptr_y_inv) {
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
 					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
@@ -124,7 +129,7 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 				}
 			}
 			
-			double me = std::numeric_limits<double>::max();
+			//double me = std::numeric_limits<double>::max();
 			// TODO: Sub-pixel estimation (low priority)
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
@@ -138,15 +143,6 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 			double d_ptr_x = (*ptr_x - *ptr_x_inv);
 			double d_ptr_y = (*ptr_y - *ptr_y_inv);
 			double occlusion = sqrt( (d_ptr_x * d_ptr_x) + (d_ptr_y * d_ptr_y) );
-
-			/*
-				We found it useful to further regularize
-				the result by applying a bilateral filter on the flow vectors.
-				For this operation, we discard the occluded pixels, and use
-				the weights wd and wc with an additional weight wr that represents
-				how reliable is our flow estimate at (x, y):
-				¿Osea multiplicamos u y v por wr?
-			*/
 			//determine occludiness of pixels
 			isOccludedPixel[y][x] = (occlusion > occlusion_limit); //true if the pixel is occluded
 			
@@ -157,7 +153,9 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	std::vector<int> energyArray;
 
 	for(int y = 0; y < rows; y++){
-		for(int x = 0; x < cols; x++){
+		double* ptr_x_f = velf_x.ptr<double>(y);
+		double* ptr_y_f = velf_y.ptr<double>(y);
+		for(int x = 0; x < cols; x++, ++ptr_x_f, ++ptr_y_f){
 			if( !(isOccludedPixel[y][x]) ){
 				energyArray.clear();
 				for (int u = -n; u <= n; ++u) {
@@ -169,14 +167,14 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 						}
 					}
 				}
-				int wr = GetWr(energyArray);
-				velf_x[y][x] = 0.0;
-				velf_y[y][x] = 0.0;
+				double wr = GetWr(energyArray);
+				*ptr_x_f = 0.0;
+				*ptr_y_f = 0.0;
 				for (int u = -n; u <= n; ++u) {
 					for (int v = -n; v <= n; ++v) {
 						if ( x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols ) {
-							velf_x[y][x] += GetWd(x, y, x + u, y + v) * GetWc(vel_x, x, y, x + u, y + v) * wr;
-							velf_y[y][x] += GetWd(x, y, x + u, y + v) * GetWc(vel_y, x, y, x + u, y + v) * wr;
+							*ptr_x_f += GetWd(x, y, x + u, y + v) * GetWc(vel_x, x, y, x + u, y + v) * wr;
+							*ptr_y_f += GetWd(x, y, x + u, y + v) * GetWc(vel_y, x, y, x + u, y + v) * wr;
 						}
 					}
 				}
