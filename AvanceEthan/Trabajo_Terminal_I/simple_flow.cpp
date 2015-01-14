@@ -41,6 +41,11 @@ double SimpleFlow::GetWd(int x0, int y0, int x, int y){
 	return std::exp( -norm / (2 * rd) );
 }
 
+double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
+	double norm = (double)( f1.GetPixel(x0, y0) - f1.GetPixel(x, y) );
+	return std::exp( -norm / (2 * rc) );
+}
+
 double SimpleFlow::GetWc(cv::Mat &f1, int x0, int y0, int x, int y){
 	Frame f(&f1, true);
 	double norm = (double)( f.GetPixel(x0, y0) - f.GetPixel(x, y) );
