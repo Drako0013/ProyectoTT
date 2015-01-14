@@ -27,9 +27,6 @@
     <ClInclude Include="video_factory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="simple_flow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="frame.cpp">
@@ -45,9 +42,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="video_factory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="simple_flow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
