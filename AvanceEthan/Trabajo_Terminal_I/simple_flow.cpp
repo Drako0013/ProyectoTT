@@ -18,8 +18,14 @@ void SimpleFlow::RemoveFrame() {
 }
 
 int SimpleFlow::GetEnergy(Frame &f1, int x1, int y1, Frame &f2, int x2, int y2){
-	int dif = f1.GetPixel(x1, y1) - f2.GetPixel(x2, y2);
-	return (dif * dif); 
+	//int dif = f1.GetPixel(x1, y1) - f2.GetPixel(x2, y2);
+	//return (dif * dif);
+	int color1 = f1.GetPixel(x1, y1);
+	int color2 = f2.GetPixel(x2, y2);
+	int redDif = (color1 >> 16) - (color2 >> 16);
+	int greenDif = ( (color1 >> 8) % (1 << 8) - (color2 >> 8) % (1 << 8) );
+	int blueDif = color1 % (1 << 8) - color2 % (1 << 8);
+	return (redDif * redDif + greenDif * greenDif + blueDif * blueDif);
 }
 
 double SimpleFlow::GetWr(std::vector<int> &energyArray){
@@ -42,7 +48,13 @@ double SimpleFlow::GetWd(int x0, int y0, int x, int y){
 }
 
 double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
-	double norm = (double)( f1.GetPixel(x0, y0) - f1.GetPixel(x, y) );
+	//double norm = (double)( f1.GetPixel(x0, y0) - f1.GetPixel(x, y) );
+	int color1 = f1.GetPixel(x0, y0);
+	int color2 = f1.GetPixel(x, y);
+	int redDif = (color1 >> 16) - (color2 >> 16);
+	int greenDif = ( (color1 >> 8) % (1 << 8) - (color2 >> 8) % (1 << 8) );
+	int blueDif = color1 % (1 << 8) - color2 % (1 << 8);
+	double norm = (double)( redDif * redDif + greenDif * greenDif + blueDif * blueDif );
 	return std::exp( -norm / (2 * rc) );
 }
 
@@ -59,6 +71,7 @@ double SimpleFlow::getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int u, in
 
 	double e = GetEnergy(f1, x0, y0, f2, x0 + u, y0 + v);
 	double result = 0.0f;
+	/*
 	for (int i = -n; i <= n; ++i) {
 		for (int j = -n; j <= n; ++j) {
 			if (x0 + i >= 0 && x0 + i < rows && y0 + j >= 0 && y0 + j < cols) {
@@ -66,6 +79,7 @@ double SimpleFlow::getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int u, in
 			}
 		}
 	}
+	*/
 	return result;
 }
 
@@ -174,7 +188,7 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	double e;
 	double E[n * 2 + 1][n * 2 + 1]; // Due to obvious limitations of arrays, E(u, v) is represented by E[u + n][v + n]
 	double Einv[n * 2 + 1][n * 2 + 1];
-	std::vector< std::vector<bool> > isOccludedPixel(rows, std::vector<bool>(cols));
+	std::vector< std::vector<bool> > isOccludedPixel(cols, std::vector<bool>(rows));
 
 	vel_x = cv::Mat(rows, cols, CV_64F);
 	vel_y = cv::Mat(rows, cols, CV_64F);
@@ -182,6 +196,8 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	cv::Mat vel_y_inv = cv::Mat(rows, cols, CV_64F);
 	cv::Mat velf_x = cv::Mat(rows, cols, CV_64F);
 	cv::Mat velf_y = cv::Mat(rows, cols, CV_64F);
+
+
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_x = vel_x.ptr<double>(x);
 		double* ptr_y = vel_y.ptr<double>(x);
@@ -235,8 +251,8 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 					}
 				}
 			}
-			double d_ptr_x = (*ptr_x - *ptr_x_inv);
-			double d_ptr_y = (*ptr_y - *ptr_y_inv);
+			double d_ptr_x = (*ptr_x + *ptr_x_inv);
+			double d_ptr_y = (*ptr_y + *ptr_y_inv);
 			double occlusion = sqrt( (d_ptr_x * d_ptr_x) + (d_ptr_y * d_ptr_y) );
 			//determine occludiness of pixels
 			isOccludedPixel[y][x] = (occlusion > occlusion_limit); //true if the pixel is occluded
@@ -251,12 +267,12 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 		double* ptr_x_f = velf_x.ptr<double>(y);
 		double* ptr_y_f = velf_y.ptr<double>(y);
 		for(int x = 0; x < cols; x++, ++ptr_x_f, ++ptr_y_f){
-			if( !(isOccludedPixel[y][x]) ){
+			if( !(isOccludedPixel[x][y]) ){
 				energyArray.clear();
 				for (int u = -n; u <= n; ++u) {
 					for (int v = -n; v <= n; ++v) {
 						if ( x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols ) {
-							if( !(isOccludedPixel[y + v][x + u]) ){
+							if( !(isOccludedPixel[x + u][y + v]) ){
 								energyArray.push_back(GetEnergy(*frames[0], x, y, *frames[1], x + u, y + v));
 							}
 						}

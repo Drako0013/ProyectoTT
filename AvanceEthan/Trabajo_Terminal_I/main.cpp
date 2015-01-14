@@ -10,6 +10,7 @@
 #include "lucas_kanade.h"
 #include "video_factory.h"
 #include "horn_schunck.h"
+#include "simple_flow.h"
 
 int main(int argc, char** argv) {
   if (argc < 3) {
@@ -33,7 +34,8 @@ int main(int argc, char** argv) {
 
   VideoFactory vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
 
-  LucasKanade lk;
+  //LucasKanade lk;
+  SimpleFlow sf;
   
   cv::Mat vx, vy;
   cv::Mat v(height, width, CV_8U);
@@ -55,9 +57,11 @@ int main(int argc, char** argv) {
   	Frame* frame = new Frame(&capture);
     frame->Rescale(width, height);
     frame->GetMatrixOnCache();
-    lk.AddFrame(frame);
+    sf.AddFrame(frame);
 
-    lk.CalculateFlow(vx, vy);
+	if(i == 0) continue;
+
+    sf.CalculateFlow(vx, vy);
     for (int x = 0; x < height; ++x) {
       uchar* ptr = v.ptr<uchar>(x);
       double* ptr_vx = vx.ptr<double>(x);
