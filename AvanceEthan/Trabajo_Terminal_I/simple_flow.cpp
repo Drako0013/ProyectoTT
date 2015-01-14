@@ -42,6 +42,11 @@ double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
 	return std::exp( -norm / (2 * rc) );
 }
 
+double SimpleFlow::GetWc(cv::Mat &f1, int x0, int y0, int x, int y){
+	double norm = (double)( f1[x0][y0] - f1[x][y] );
+	return std::exp( -norm / (2 * rc) );
+}
+
 double SimpleFlow::getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int u, int v){
 	const int n = SimpleFlow::NeighborhoodSize;
 	int rows = f1.Rows();
@@ -71,11 +76,12 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	double e;
 	double E[n * 2 + 1][n * 2 + 1]; // Due to obvious limitations of arrays, E(u, v) is represented by E[u + n][v + n]
 	double Einv[n * 2 + 1][n * 2 + 1];
-
-	std::vector<int> energyArray;
+	std::vector< std::vector<bool> > isOccludedPixel(rows, std::vector<bool>(cols));
 
 	vel_x = cv::Mat(rows, cols, CV_64F);
 	vel_y = cv::Mat(rows, cols, CV_64F);
+	cv::Mat velf_x = cv::Mat(rows, cols, CV_64F);
+	cv::Mat velf_y = cv::Mat(rows, cols, CV_64F);
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_x = vel_x.ptr<double>(x);
 		double* ptr_y = vel_y.ptr<double>(x);
@@ -84,13 +90,11 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 		double* ptr_y_inv = vel_y.ptr<double>(x);
 
 		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y) {
-			energyArray.clear();
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
 					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
 						E[u + n][v + n] = std::numeric_limits<double>::max();
 					} else {
-						energyArray.push_back(GetEnergy(*frames[0], x, y, *frames[1], x + u, y + v));
 						E[u + n][v + n] = SimpleFlow::getSmoothness(*frames[0], *frames[1], x, y, u, v);
 					}
 				}
@@ -140,19 +144,44 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 				the result by applying a bilateral filter on the flow vectors.
 				For this operation, we discard the occluded pixels, and use
 				the weights wd and wc with an additional weight wr that represents
-				how reliable is our flow estimate at (x, y):
+				how reliable is our flow estimate at (x, y):
+				¿Osea multiplicamos u y v por wr?
 			*/
-
-			if( occlusion < occlusion_limit ){
-				int wr = SimpleFlow::GetWr(energyArray);
-
-			}
-
+			//determine occludiness of pixels
+			isOccludedPixel[y][x] = (occlusion > occlusion_limit); //true if the pixel is occluded
 			
-
 		}
 	}
 
-	
+	//Bilateral filter
+	std::vector<int> energyArray;
+
+	for(int y = 0; y < rows; y++){
+		for(int x = 0; x < cols; x++){
+			if( !(isOccludedPixel[y][x]) ){
+				energyArray.clear();
+				for (int u = -n; u <= n; ++u) {
+					for (int v = -n; v <= n; ++v) {
+						if ( x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols ) {
+							if( !(isOccludedPixel[y + v][x + u]) ){
+								energyArray.push_back(GetEnergy(*frames[0], x, y, *frames[1], x + u, y + v));
+							}
+						}
+					}
+				}
+				int wr = GetWr(energyArray);
+				velf_x[y][x] = 0.0;
+				velf_y[y][x] = 0.0;
+				for (int u = -n; u <= n; ++u) {
+					for (int v = -n; v <= n; ++v) {
+						if ( x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols ) {
+							velf_x[y][x] += GetWd(x, y, x + u, y + v) * GetWc(vel_x, x, y, x + u, y + v) * wr;
+							velf_y[y][x] += GetWd(x, y, x + u, y + v) * GetWc(vel_y, x, y, x + u, y + v) * wr;
+						}
+					}
+				}
+			}
+		}
+	}
 
 }
