@@ -18,8 +18,13 @@ void SimpleFlow::RemoveFrame() {
 }
 
 int SimpleFlow::GetEnergy(Frame &f1, int x1, int y1, Frame &f2, int x2, int y2){
-	int dif = f1.GetPixel(x1, y1) - f2.GetPixel(x2, y2);
-	return (dif * dif); 
+	//int dif = f1.GetPixel(x1, y1) - f2.GetPixel(x2, y2);
+	int color1 = f1.GetPixel(x1, y1);
+	int color2 = f2.GetPixel(x2, y2);
+	int redDif = (color1 >> 16) - (color2 >> 16);
+	int greenDif = ( (color1 >> 8) % (1 << 8) - (color2 >> 8) % (1 << 8) );
+	int blueDif = color1 % (1 << 8) - color2 % (1 << 8);
+	return (redDif * redDif + greenDif * greenDif + blueDif * blueDif); 
 }
 
 double SimpleFlow::GetWr(std::vector<int> &energyArray){
@@ -42,7 +47,12 @@ double SimpleFlow::GetWd(int x0, int y0, int x, int y){
 }
 
 double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
-	double norm = (double)( f1.GetPixel(x0, y0) - f1.GetPixel(x, y) );
+	int color1 = f1.GetPixel(x0, y0);
+	int color2 = f1.GetPixel(x, y);
+	int redDif = (color1 >> 16) - (color2 >> 16);
+	int greenDif = ( (color1 >> 8) % (1 << 8) - (color2 >> 8) % (1 << 8) );
+	int blueDif = color1 % (1 << 8) - color2 % (1 << 8);
+	double norm = (double)( redDif * redDif + greenDif * greenDif + blueDif * blueDif );
 	return std::exp( -norm / (2 * rc) );
 }
 
@@ -162,7 +172,7 @@ void SimpleFlow::CalcMultiStageFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 }
 
 
-void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
+void SimpleFlow::CalculateFlow(cv::Mat& velf_x, cv::Mat& velf_y) {
 
 	// Following code needs to be refactored:
 
@@ -174,14 +184,14 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	double e;
 	double E[n * 2 + 1][n * 2 + 1]; // Due to obvious limitations of arrays, E(u, v) is represented by E[u + n][v + n]
 	double Einv[n * 2 + 1][n * 2 + 1];
-	std::vector< std::vector<bool> > isOccludedPixel(rows, std::vector<bool>(cols));
+	std::vector< std::vector<bool> > isOccludedPixel(cols, std::vector<bool>(rows));
 
-	vel_x = cv::Mat(rows, cols, CV_64F);
-	vel_y = cv::Mat(rows, cols, CV_64F);
+	cv::Mat vel_x = cv::Mat(rows, cols, CV_64F);
+	cv::Mat vel_y = cv::Mat(rows, cols, CV_64F);
 	cv::Mat vel_x_inv = cv::Mat(rows, cols, CV_64F);
 	cv::Mat vel_y_inv = cv::Mat(rows, cols, CV_64F);
-	cv::Mat velf_x = cv::Mat(rows, cols, CV_64F);
-	cv::Mat velf_y = cv::Mat(rows, cols, CV_64F);
+	velf_x = cv::Mat(rows, cols, CV_64F);
+	velf_y = cv::Mat(rows, cols, CV_64F);
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_x = vel_x.ptr<double>(x);
 		double* ptr_y = vel_y.ptr<double>(x);
