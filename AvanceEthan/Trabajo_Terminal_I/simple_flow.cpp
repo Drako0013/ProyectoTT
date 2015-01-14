@@ -1,5 +1,9 @@
 #include "simple_flow.h"
 
+const double SimpleFlow::rd = 5.5;
+const double SimpleFlow::rc = 0.08;
+const double SimpleFlow::occlusion_limit = 1.0; //this value has to be defined correctly
+
 cv::Mat SimpleFlow::AddFrame(Frame* frame) {
 	frames.push_back(frame);
 	if (frames.size() > 2) RemoveFrame();
@@ -39,6 +43,12 @@ double SimpleFlow::GetWd(int x0, int y0, int x, int y){
 
 double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
 	double norm = (double)( f1.GetPixel(x0, y0) - f1.GetPixel(x, y) );
+	return std::exp( -norm / (2 * rc) );
+}
+
+double SimpleFlow::GetWc(cv::Mat &f1, int x0, int y0, int x, int y){
+	Frame f(&f1, true);
+	double norm = (double)( f.GetPixel(x0, y0) - f.GetPixel(x, y) );
 	return std::exp( -norm / (2 * rc) );
 }
 
@@ -158,34 +168,33 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 
 	const int n = SimpleFlow::NeighborhoodSize;
 
-	double occlusion_limit = 1.0; //this value has to be defined
-
 	int rows = frames[0]->Rows();
 	int cols = frames[0]->Columns();
 
 	double e;
 	double E[n * 2 + 1][n * 2 + 1]; // Due to obvious limitations of arrays, E(u, v) is represented by E[u + n][v + n]
 	double Einv[n * 2 + 1][n * 2 + 1];
-
-	std::vector<int> energyArray;
+	std::vector< std::vector<bool> > isOccludedPixel(rows, std::vector<bool>(cols));
 
 	vel_x = cv::Mat(rows, cols, CV_64F);
 	vel_y = cv::Mat(rows, cols, CV_64F);
+	cv::Mat vel_x_inv = cv::Mat(rows, cols, CV_64F);
+	cv::Mat vel_y_inv = cv::Mat(rows, cols, CV_64F);
+	cv::Mat velf_x = cv::Mat(rows, cols, CV_64F);
+	cv::Mat velf_y = cv::Mat(rows, cols, CV_64F);
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_x = vel_x.ptr<double>(x);
 		double* ptr_y = vel_y.ptr<double>(x);
 
-		double* ptr_x_inv = vel_x.ptr<double>(x);
-		double* ptr_y_inv = vel_y.ptr<double>(x);
+		double* ptr_x_inv = vel_x_inv.ptr<double>(x);
+		double* ptr_y_inv = vel_y_inv.ptr<double>(x);
 
-		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y) {
-			energyArray.clear();
+		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y, ++ptr_x_inv, ++ptr_y_inv) {
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
 					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
 						E[u + n][v + n] = std::numeric_limits<double>::max();
 					} else {
-						energyArray.push_back(GetEnergy(*frames[0], x, y, *frames[1], x + u, y + v));
 						E[u + n][v + n] = SimpleFlow::getSmoothness(*frames[0], *frames[1], x, y, u, v);
 					}
 				}
@@ -215,7 +224,7 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 				}
 			}
 			
-			double me = std::numeric_limits<double>::max();
+			//double me = std::numeric_limits<double>::max();
 			// TODO: Sub-pixel estimation (low priority)
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
@@ -229,26 +238,43 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 			double d_ptr_x = (*ptr_x - *ptr_x_inv);
 			double d_ptr_y = (*ptr_y - *ptr_y_inv);
 			double occlusion = sqrt( (d_ptr_x * d_ptr_x) + (d_ptr_y * d_ptr_y) );
-
-			/*
-				We found it useful to further regularize
-				the result by applying a bilateral filter on the flow vectors.
-				For this operation, we discard the occluded pixels, and use
-				the weights wd and wc with an additional weight wr that represents
-				how reliable is our flow estimate at (x, y):
-
-			*/
-
-			if( occlusion < occlusion_limit ){
-				int wr = SimpleFlow::GetWr(energyArray);
-
-			}
-
-			
+			//determine occludiness of pixels
+			isOccludedPixel[y][x] = (occlusion > occlusion_limit); //true if the pixel is occluded
 
 		}
 	}
 
-	
+	//Bilateral filter
+	std::vector<int> energyArray;
+
+	for(int y = 0; y < rows; y++){
+		double* ptr_x_f = velf_x.ptr<double>(y);
+		double* ptr_y_f = velf_y.ptr<double>(y);
+		for(int x = 0; x < cols; x++, ++ptr_x_f, ++ptr_y_f){
+			if( !(isOccludedPixel[y][x]) ){
+				energyArray.clear();
+				for (int u = -n; u <= n; ++u) {
+					for (int v = -n; v <= n; ++v) {
+						if ( x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols ) {
+							if( !(isOccludedPixel[y + v][x + u]) ){
+								energyArray.push_back(GetEnergy(*frames[0], x, y, *frames[1], x + u, y + v));
+							}
+						}
+					}
+				}
+				double wr = GetWr(energyArray);
+				*ptr_x_f = 0.0;
+				*ptr_y_f = 0.0;
+				for (int u = -n; u <= n; ++u) {
+					for (int v = -n; v <= n; ++v) {
+						if ( x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols ) {
+							*ptr_x_f += GetWd(x, y, x + u, y + v) * GetWc(vel_x, x, y, x + u, y + v) * wr;
+							*ptr_y_f += GetWd(x, y, x + u, y + v) * GetWc(vel_y, x, y, x + u, y + v) * wr;
+						}
+					}
+				}
+			}
+		}
+	}
 
 }
