@@ -4,9 +4,24 @@ const double SimpleFlow::rd = 5.5;
 const double SimpleFlow::rc = 0.08;
 const double SimpleFlow::occlusion_limit = 20.0; //this value has to be defined correctly
 
+void SimpleFlow::fillDistanceWeightMatrix(){
+	distanceWeight = new double*[2 * NeighborhoodSize + 1];
+	for(int i = 0; i < 2 * NeighborhoodSize + 1; i++)
+		distanceWeight[i] = new double[2 * NeighborhoodSize + 1];
+	for(int i = 0; i < 2 * NeighborhoodSize + 1; i++){
+		for(int j = 0; j < 2 * NeighborhoodSize + 1; j++){
+			double dx = NeighborhoodSize - j;
+			double dy = NeighborhoodSize - i;
+			double norm = (dx * dx) + (dy * dy);
+			distanceWeight[i][j] = std::exp( -norm / (2 * rd) );
+		}
+	}
+}
+
 cv::Mat SimpleFlow::AddFrame(Frame* frame) {
 	frames.push_back(frame);
 	if (frames.size() > 2) RemoveFrame();
+	else fillDistanceWeightMatrix();
 	return frames.back()->GetMatrix();
 }
 
@@ -41,10 +56,13 @@ double SimpleFlow::GetWr(std::vector<int> &energyArray){
 
 
 double SimpleFlow::GetWd(int x0, int y0, int x, int y){
+	/*
 	int difX = x0 - x;
 	int difY = y0 - y;
 	int norm = (difX * difX) + (difY * difY);
 	return std::exp( -norm / (2 * rd) );
+	*/
+	return distanceWeight[ std::abs(y - y0) ][ std::abs(x - x0) ];
 }
 
 double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
@@ -227,8 +245,6 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 				}
 			}
 
-			// TODO: Bi-filter results; calculate occlusion (check)
-
 			//OcclusionCalculation
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
@@ -240,7 +256,6 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 				}
 			}
 			
-			//double me = std::numeric_limits<double>::max();
 			// TODO: Sub-pixel estimation (low priority)
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {

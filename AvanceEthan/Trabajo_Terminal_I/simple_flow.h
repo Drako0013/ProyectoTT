@@ -31,11 +31,13 @@ private:
 	double GetWd(int x0, int y0, int x, int y);
 	double GetWc(Frame &f1, int x0, int y0, int x, int y);
 	double SimpleFlow::GetWc(cv::Mat &f1, int x0, int y0, int x, int y);
+	void fillDistanceWeightMatrix();
 	static const int NeighborhoodSize = 5;
 	static const int Layers = 5;
 	static const double rd;
 	static const double rc;
 	static const double occlusion_limit;
+	double** distanceWeight;
 };
 
 
