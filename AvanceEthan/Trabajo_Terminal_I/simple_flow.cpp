@@ -131,11 +131,11 @@ void SimpleFlow::BilateralFilter(cv::Mat flow_x, cv::Mat flow_y, Frame cur, Fram
 	const int n = SimpleFlow::NeighborhoodSize;
 	int rows = flow_x.rows;
 	int cols = flow_x.cols;
-	for (int y = 0; y < rows; y++){
-		double* ptr_x_f = flow_x.ptr<double>(y);
-		double* ptr_y_f = flow_y.ptr<double>(y);
-		double* ptr_wr = confidence.ptr<double>(y);
-		for (int x = 0; x < cols; x++, ++ptr_x_f, ++ptr_y_f, ++ptr_wr){
+	for (int x = 0; x < rows; x++){
+		double* ptr_x_f = flow_x.ptr<double>(x);
+		double* ptr_y_f = flow_y.ptr<double>(x);
+		double* ptr_wr = confidence.ptr<double>(x);
+		for (int y = 0; y < cols; y++, ++ptr_x_f, ++ptr_y_f, ++ptr_wr){
 			if (!(isOccludedPixel[x][y])){
 				double wr = *ptr_wr;
 				*ptr_x_f = 0.0;
@@ -224,11 +224,11 @@ void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& flow_x, cv::Ma
 	std::vector<int> energyArray;
 	int rows = flow_x.rows;
 	int cols = flow_x.cols;
-	for (int y = 0; y < rows; y++){
-		double* ptr_x_f = flow_x.ptr<double>(y);
-		double* ptr_y_f = flow_y.ptr<double>(y);
-		double* ptr_wr = confidence.ptr<double>(y);
-		for (int x = 0; x < cols; x++, ++ptr_x_f, ++ptr_y_f, ++ptr_wr){
+	for (int x = 0; x < rows; x++) {
+		double* ptr_x_f = flow_x.ptr<double>(x);
+		double* ptr_y_f = flow_y.ptr<double>(x);
+		double* ptr_wr = confidence.ptr<double>(x);
+		for (int y = 0; y < cols; y++, ++ptr_x_f, ++ptr_y_f, ++ptr_wr){
 			energyArray.clear();
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
