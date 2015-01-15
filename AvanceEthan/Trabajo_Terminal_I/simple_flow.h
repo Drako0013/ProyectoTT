@@ -18,7 +18,7 @@ public:
 	void RemoveFrame();
 	// Flow calculation method
 	void CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y);
-	
+
 private:
 	std::vector<Frame*> frames;
 	void BuildPyramid(Frame &src, std::vector<Frame>& pyramid);
