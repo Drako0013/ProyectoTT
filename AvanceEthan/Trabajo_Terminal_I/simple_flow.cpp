@@ -2,7 +2,7 @@
 
 const double SimpleFlow::rd = 5.5;
 const double SimpleFlow::rc = 0.08;
-const double SimpleFlow::occlusion_limit = 1.0; //this value has to be defined correctly
+const double SimpleFlow::occlusion_limit = 20.0; //this value has to be defined correctly
 
 cv::Mat SimpleFlow::AddFrame(Frame* frame) {
 	frames.push_back(frame);
@@ -71,7 +71,7 @@ double SimpleFlow::getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int u, in
 
 	double e = GetEnergy(f1, x0, y0, f2, x0 + u, y0 + v);
 	double result = 0.0f;
-	/*
+
 	for (int i = -n; i <= n; ++i) {
 		for (int j = -n; j <= n; ++j) {
 			if (x0 + i >= 0 && x0 + i < rows && y0 + j >= 0 && y0 + j < cols) {
@@ -79,7 +79,7 @@ double SimpleFlow::getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int u, in
 			}
 		}
 	}
-	*/
+	
 	return result;
 }
 
@@ -211,7 +211,7 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
 						E[u + n][v + n] = std::numeric_limits<double>::max();
 					} else {
-						E[u + n][v + n] = SimpleFlow::getSmoothness(*frames[0], *frames[1], x, y, u, v);
+						E[u + n][v + n] = SimpleFlow::getSmoothness(*frames[0], *frames[1], x, y, u, v); //checked
 					}
 				}
 			}
@@ -235,7 +235,7 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
 						Einv[u + n][v + n] = std::numeric_limits<double>::max();
 					} else {
-						Einv[u + n][v + n] = SimpleFlow::getSmoothness(*frames[1], *frames[0], x + u, y + v, u, v);
+						Einv[u + n][v + n] = SimpleFlow::getSmoothness(*frames[1], *frames[0], x + u, y + v, -u, -v); //checked
 					}
 				}
 			}
