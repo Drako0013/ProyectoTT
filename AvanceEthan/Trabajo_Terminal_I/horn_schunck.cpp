@@ -1,7 +1,7 @@
 #include "horn_schunck.h"
 
 const int HornSchunck::kFlowIterations = 5;
-const double HornSchunck::kFlowAlpha = 66.0;
+const double HornSchunck::kFlowAlpha = 13.7;
 const int HornSchunck::kAvgKernel[3][3] = {{1,  2, 1},
                                            {2, -1, 2},
                                            {1,  2, 1}};
@@ -69,13 +69,13 @@ double* HornSchunck::LocalAverage(double* M) {
   double* ptr = avg;
 	for (int i = 0; i < rows; ++i) {
 		for (int j = 0; j < cols; ++j, ++ptr) {
-			int pix_sum = M[i * cols + j] * 12;
+			double pix_sum = -M[i * cols + j] * 12;
 			for (int k = kKernelBegin; k <= kKernelEnd; ++k)
 				for (int l = kKernelBegin; l <= kKernelEnd; ++l)
 					if (i + k >= 0 && i + k < rows && j + l >= 0 && j + l < cols)
 						pix_sum += kAvgKernel[k - kKernelBegin][l - kKernelBegin] *
                        M[(i + k) * cols + j + l];
-			*ptr = static_cast<double>(pix_sum) / 12.0;
+			*ptr = pix_sum / 12.0;
 		}
 	}
 	return avg;
