@@ -28,11 +28,11 @@ int main(int argc, char** argv) {
   
   cv::Mat capture;
   std::string dir = std::string(argv[1]);
-
+  
   int width = 320;
   int height = 240;
 
-  VideoFactory vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+  /*VideoFactory vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
 
   //LucasKanade lk;
   SimpleFlow sf;
@@ -75,46 +75,44 @@ int main(int argc, char** argv) {
     }
     result->GetCacheOnMatrix();
     vf.AddFrame(result->GetMatrix());
-  }
+  }*/
   
-  /*HornSchunck hs;
-  int widthF, heightF, ratio;
-  ratio = width / 100;
-  if(ratio == 0){
-	widthF = width;
-	heightF = height;
-  } else {
-	widthF = width / ratio;
-	heightF = height / ratio;
-  }
-  VideoFactory min(dir + "min.avi", widthF, heightF, vcapture.get(CV_CAP_PROP_FPS));
-  cv::Mat vx, vy;
-  cv::Mat v(heightF, widthF, CV_8U);
+  HornSchunck hs;
+
+  VideoFactory min(dir + "min.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+
+  double* vx = NULL, *vy = NULL;
+  cv::Mat v(height, width, CV_8U);
   std::cout << "\n\nStarting process.\n";
-  std::cout << heightF << " x " << widthF << std::endl;
-  std::cout << vcapture.get(CV_CAP_PROP_FPS) << " FPS" << std::endl;
-  for (int i = 0; i < 500; ++i) {
-    //std::cout << "Processing frame " << i << ".\n";
+  for (int i = 0; true; ++i) {
+    std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;
     if (capture.empty()) break;
-  	frame.SetMatrix(&capture);
-	cv::Mat redMatrix = frame.Rescale(widthF, heightF);
-	//min.AddFrame(redMatrix);
-	redFrame.SetMatrix(&redMatrix);
-	hs.AddFrame(&redFrame);
-    hs.CalculateFlow(vx, vy);
-    for (int ii = 0; ii < vx.rows; ++ii) {
-      for (int jj = 0; jj < vx.cols; ++jj) {
-        double x = vx.at<double>(ii, jj);
-        double y = vy.at<double>(ii, jj);
-        uchar flow = (x > 3.5 || y > 3.5)? 255: 0;
-        v.at<uchar>(ii, jj) = flow;
+    Frame* frame = new Frame(&capture);
+	  frame->Rescale(width, height);
+    frame->GetMatrixOnCache();
+    hs.AddFrame(frame);
+
+    if (i % 1 == 0) {
+      delete [] vx;
+      delete [] vy;
+      hs.CalculateFlow(&vx, &vy);
+    }
+
+    int rows = frame->Rows();
+    int cols = frame->Columns();
+    for (int x = 0; x < rows; ++x) {
+      uchar* ptr = v.ptr<uchar>(x);
+      for (int y = 0; y < cols; ++y, ++ptr) {
+        double X = vx[x * cols + y];
+        double Y = vy[x * cols + y];
+        uchar flow = (2 < X || 2 < Y)? 255: 0;
+        *ptr = flow;
       }
     }
     min.AddFrame(v);
-
-  }*/
+  }
 
   return 0;
 }
