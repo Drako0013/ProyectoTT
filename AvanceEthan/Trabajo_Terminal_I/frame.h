@@ -26,10 +26,13 @@ class Frame {
   // Matrix methods
   cv::Mat GetMatrix() const;
   void SetMatrix(cv::Mat*);
+  bool IsGrayscale();
 
   // Cache methods
   void GetMatrixOnCache();
   void GetCacheOnMatrix();
+
+  Frame Copy();
 
  private:
   void ResizeCache(int, int);
