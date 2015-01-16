@@ -10,8 +10,16 @@ Frame::Frame(cv::Mat* matrix, bool grayscale_)
   SetMatrix(matrix);
 }
 
+Frame Frame::Copy() {
+	Frame f(grayscale);
+	f.matrix = this->matrix;
+	// Should we copy also the cache?
+	return f;
+}
+
 Frame::~Frame() {
-  delete [] matrix_cache;
+	//It would be useful to have shared_ptr's here... :c
+	//if (cached) delete [] matrix_cache;
 }
 
 int Frame::Rows() const {
@@ -54,6 +62,10 @@ void Frame::SetPixel(int x, int y, int pixel) {
     matrix.at<cv::Vec3b>(x, y)[1] = (pixel >> 8) & 255;
     matrix.at<cv::Vec3b>(x, y)[2] = (pixel >> 16) & 255;
   }
+}
+
+bool Frame::IsGrayscale() {
+	return grayscale;
 }
 
 cv::Mat Frame::GetMatrix() const {
@@ -120,6 +132,6 @@ void Frame::GetCacheOnMatrix() {
 }
 
 void Frame::ResizeCache(int rows, int columns) {
-  delete [] matrix_cache;
+  if (cached) delete [] matrix_cache;
   matrix_cache = new int[rows * columns];
 }

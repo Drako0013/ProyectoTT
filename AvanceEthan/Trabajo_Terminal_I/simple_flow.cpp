@@ -58,12 +58,6 @@ double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
 	return std::exp(-norm / (2 * rc));
 }
 
-double SimpleFlow::GetWc(cv::Mat &f1, int x0, int y0, int x, int y){
-	Frame f(&f1, true);
-	double norm = (double)(f.GetPixel(x0, y0) - f.GetPixel(x, y));
-	return std::exp(-norm / (2 * rc));
-}
-
 double SimpleFlow::getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int u, int v){
 	const int n = SimpleFlow::NeighborhoodSize;
 	int rows = f1.Rows();
@@ -88,7 +82,7 @@ void SimpleFlow::BuildPyramid(Frame &src, std::vector<Frame>& pyramid) {
 		if (prev.Rows() <= 1 || prev.Columns() <= 1) {
 			break;
 		}
-		Frame next;
+		Frame next = prev.Copy();
 		next.Rescale((prev.Rows() + 1) / 2, (prev.Columns() + 1) / 2);
 		pyramid.push_back(next);
 	}
@@ -122,7 +116,7 @@ cv::Mat SimpleFlow::UpscaleFlow(cv::Mat& flow, int new_cols, int new_rows, Frame
 	cv::Mat orig_flow = flow;
 	CrossBilateralFilter(orig_flow, image, confidence, flow);
 	cv::Mat new_flow;
-	resize(flow, new_flow, cv::Size(new_cols, new_rows), 0, 0, cv::INTER_NEAREST);
+	resize(flow, new_flow, cv::Size(new_rows, new_cols), 0, 0, cv::INTER_NEAREST);
 	new_flow *= 2;
 	return new_flow;
 }
@@ -143,8 +137,8 @@ void SimpleFlow::BilateralFilter(cv::Mat flow_x, cv::Mat flow_y, Frame cur, Fram
 				for (int u = -n; u <= n; ++u) {
 					for (int v = -n; v <= n; ++v) {
 						if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
-							*ptr_x_f += GetWd(x, y, x + u, y + v) * GetWc(flow_x, x, y, x + u, y + v) * wr;
-							*ptr_y_f += GetWd(x, y, x + u, y + v) * GetWc(flow_y, x, y, x + u, y + v) * wr;
+							*ptr_x_f += GetWd(x, y, x + u, y + v) * GetWc(cur, x, y, x + u, y + v) * wr;
+							*ptr_y_f += GetWd(x, y, x + u, y + v) * GetWc(cur, x, y, x + u, y + v) * wr;
 						}
 					}
 				}
@@ -153,10 +147,10 @@ void SimpleFlow::BilateralFilter(cv::Mat flow_x, cv::Mat flow_y, Frame cur, Fram
 	}
 }
 
-void SimpleFlow::CalcOcclusion(cv::Mat& vel_x, cv::Mat& vel_y, cv::Mat& vel_x_inv, cv::Mat& vel_y_inv, std::vector< std::vector<bool> >& isOccludedPixel) {
+void SimpleFlow::CalcOcclusion(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat& vel_y, cv::Mat& vel_x_inv, cv::Mat& vel_y_inv, std::vector< std::vector<bool> >& isOccludedPixel) {
 
-	int rows = frames[0]->Rows();
-	int cols = frames[0]->Columns();
+	int rows = cur.Rows();
+	int cols = cur.Columns();
 
 	isOccludedPixel = std::vector< std::vector<bool> >(rows, std::vector<bool>(cols));
 
@@ -181,8 +175,8 @@ void SimpleFlow::CalcOcclusion(cv::Mat& vel_x, cv::Mat& vel_y, cv::Mat& vel_x_in
 void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat& vel_y) {
 	const int n = SimpleFlow::NeighborhoodSize;
 
-	int rows = frames[0]->Rows();
-	int cols = frames[0]->Columns();
+	int rows = cur.Rows();
+	int cols = cur.Columns();
 
 	double me;
 	double E[n * 2 + 1][n * 2 + 1]; // Due to obvious limitations of arrays, E(u, v) is represented by E[u + n][v + n]
@@ -219,20 +213,19 @@ void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 	}
 }
 
-void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& flow_x, cv::Mat& flow_y, cv::Mat& confidence) {
+void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& confidence) {
 	const int n = SimpleFlow::NeighborhoodSize;
 	std::vector<int> energyArray;
-	int rows = flow_x.rows;
-	int cols = flow_x.cols;
-	for (int x = 0; x < rows; x++) {
-		double* ptr_x_f = flow_x.ptr<double>(x);
-		double* ptr_y_f = flow_y.ptr<double>(x);
+	int rows = cur.Rows();
+	int cols = next.Columns();
+	confidence = cv::Mat(rows, cols, CV_64F);
+	for (int x = 0; x < rows; ++x) {
 		double* ptr_wr = confidence.ptr<double>(x);
-		for (int y = 0; y < cols; y++, ++ptr_x_f, ++ptr_y_f, ++ptr_wr){
+		for (int y = 0; y < cols; ++y, ++ptr_wr){
 			energyArray.clear();
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
-					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
+					if (x >= 0 && x < rows && y >= 0 && y < cols && x + u >= 0 && x + u < rows && y + v >= 0 && y + v < cols) {
 						energyArray.push_back(GetEnergy(cur, x, y, next, x + u, y + v));
 					}
 				}
@@ -243,6 +236,10 @@ void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& flow_x, cv::Ma
 }
 
 void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
+
+	if (frames.size() < 2) {
+		return;
+	}
 
 	cv::Mat flow_x, flow_y, flow_inv_x, flow_inv_y, confidence, confidence_inv;
 
@@ -257,14 +254,11 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	CalcStageFlow(pyramid_cur.back(), pyramid_next.back(), flow_x, flow_y);
 	CalcStageFlow(pyramid_next.back(), pyramid_cur.back(), flow_inv_x, flow_inv_y);
 
-	CalcOcclusion(flow_x, flow_y, flow_inv_x, flow_inv_y, isOccluded);
-	CalcOcclusion(flow_inv_x, flow_inv_y, flow_x, flow_y, isOccludedInv);
+	CalcOcclusion(pyramid_cur.back(), pyramid_next.back(), flow_x, flow_y, flow_inv_x, flow_inv_y, isOccluded);
+	CalcOcclusion(pyramid_next.back(), pyramid_cur.back(), flow_inv_x, flow_inv_y, flow_x, flow_y, isOccludedInv);
 
 	confidence = cv::Mat::ones(pyramid_cur.back().GetMatrix().size(), CV_64F);
 	confidence_inv = cv::Mat::ones(pyramid_cur.back().GetMatrix().size(), CV_64F);
-
-	BilateralFilter(flow_x, flow_y, *frames[0], *frames[1], confidence, isOccluded);
-	BilateralFilter(flow_inv_x, flow_inv_y, *frames[1], *frames[0], confidence_inv, isOccludedInv);
 
 	for (int l = pyramid_cur.size() - 2; l >= 0; --l) {
 		Frame cur = pyramid_cur[l];
@@ -283,19 +277,20 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 		flow_y = UpscaleFlow(flow_y, curr_rows, curr_cols, p_cur, confidence);
 		flow_inv_y = UpscaleFlow(flow_y, curr_rows, curr_cols, p_next, confidence_inv);
 
-		CalcConfidence(cur, next, flow_x, flow_y, confidence);
-		CalcConfidence(next, cur, flow_inv_x, flow_inv_y, confidence_inv);
+		CalcConfidence(cur, next, confidence);
+		CalcConfidence(next, cur, confidence_inv);
 
 		CalcStageFlow(cur, next, flow_x, flow_y);
 		CalcStageFlow(next, cur, flow_inv_x, flow_inv_y);
 
-		CalcOcclusion(flow_x, flow_y, flow_inv_x, flow_inv_y, isOccluded);
-		CalcOcclusion(flow_inv_x, flow_inv_y, flow_x, flow_y, isOccludedInv);
-
-		BilateralFilter(flow_x, flow_y, *frames[0], *frames[1], confidence, isOccluded);
-		BilateralFilter(flow_inv_x, flow_inv_y, *frames[1], *frames[0], confidence_inv, isOccludedInv);
+		CalcOcclusion(cur, next, flow_x, flow_y, flow_inv_x, flow_inv_y, isOccluded);
+		CalcOcclusion(next, cur, flow_inv_x, flow_inv_y, flow_x, flow_y, isOccludedInv);
 
 	}
+
+	/*
+	BilateralFilter(flow_x, flow_y, cur, next, confidence, isOccluded);
+	*/
 
 	vel_x = flow_x;
 	vel_y = flow_y;
