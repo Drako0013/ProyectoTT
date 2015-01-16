@@ -1,5 +1,5 @@
-#ifndef LUCASKANADE_H_
-#define LUCASKANADE_H_
+#ifndef LUCAS_KANADE_H_
+#define LUCAS_KANADE_H_
 
 #include <vector>
 #include <algorithm>
