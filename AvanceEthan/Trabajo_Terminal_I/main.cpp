@@ -12,6 +12,12 @@
 #include "horn_schunck.h"
 #include "simple_flow.h"
 
+const int kUp = 0x00FFFF; // LIGHT BLUE
+const int kDown = 0x00FF00; // GREEN
+const int kLeft = 0xFF0000; // RED
+const int kRight = 0xFFFF00; // YELLOW
+const double kIntensity = 4.7;
+
 int main(int argc, char** argv) {
   if (argc < 3) {
     std::cout << "Video input file and output directory required.";
@@ -32,89 +38,116 @@ int main(int argc, char** argv) {
   int width = 320;
   int height = 240;
 
-  /*VideoFactory vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+  /*LucasKanade lk;
 
-  LucasKanade lk;
-  
+  VideoFactory lk_vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+
   cv::Mat vx, vy;
   std::cout << "\n\nStarting process.\n";
 
-  Frame* result = new Frame(false);
-  for (int i = 0; true && i < 1000; ++i) {
+  Frame* lk_result = new Frame(false);
+  for (int i = 0; true; ++i) {
     std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;
     if (capture.empty()) break;
 
     if (!i) {
-      result->SetMatrix(&capture);
-      result->Rescale(width, height);
-      result->GetMatrixOnCache();
+      lk_result->SetMatrix(&capture);
+      lk_result->Rescale(width, height);
+      lk_result->GetMatrixOnCache();
     }
 
   	Frame* frame = new Frame(&capture);
     frame->Rescale(width, height);
     frame->GetMatrixOnCache();
-    sf.AddFrame(frame);
+    lk.AddFrame(frame);
 
-	if(i == 0) continue;
-
-    sf.CalculateFlow(vx, vy);
+    lk.CalculateFlow(vx, vy);
+    
     for (int x = 0; x < height; ++x) {
       double* ptr_vx = vx.ptr<double>(x);
       double* ptr_vy = vy.ptr<double>(x);
       for (int y = 0; y < width; ++y, ++ptr_vx, ++ptr_vy) {
         double X = *ptr_vx, Y = *ptr_vy;
-        uchar flow_x = (X < -50 || 50 < X)? 255: 0;
-        uchar flow_y = (Y < -50 || 50 < X)? 255: 0;
-        result->SetPixel(x, y, flow_x << 16 | flow_y);
+
+        int hor_color = 0;
+        double intensity = std::min(std::abs(Y) / kIntensity, 1.0);
+        for (int k = 0; k <= 16; k += 8) {
+          int color = (Y < 0)? (kLeft >> k) & 255: (kRight >> k) & 255;
+          hor_color |= static_cast<int>(color * intensity) << k;
+        }
+        int ver_color = 0;
+        intensity = std::min(std::abs(X) / kIntensity, 1.0);
+        for (int k = 0; k <= 16; k += 8) {
+          int color = (X < 0)? (kUp >> k) & 255: (kDown >> k) & 255;
+          ver_color |= static_cast<int>(color * intensity) << k;
+        }
+
+        lk_result->SetPixel(x, y, hor_color);
       }
     }
-    result->GetCacheOnMatrix();
-    vf.AddFrame(result->GetMatrix());
+
+    lk_result->GetCacheOnMatrix();
+    lk_vf.AddFrame(lk_result->GetMatrix());
   }*/
   
   HornSchunck hs;
 
-  VideoFactory min(dir + "min.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
-
-  double* vx = NULL, *vy = NULL;
-  Frame* result = new Frame(false);
+  VideoFactory hs_vf(dir + "-hs-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+  
+  double* u = NULL, *v = NULL;
+  Frame* hs_result = new Frame(false);
   std::cout << "\n\nStarting process.\n";
   for (int i = 0; true; ++i) {
     std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;
     if (capture.empty()) break;
+
+    if (!i) {
+      hs_result->SetMatrix(&capture);
+      hs_result->Rescale(width, height);
+      hs_result->GetMatrixOnCache();
+    }
+
     Frame* frame = new Frame(&capture);
 	  frame->Rescale(width, height);
     frame->GetMatrixOnCache();
     hs.AddFrame(frame);
 
-    hs.CalculateFlow(&vx, &vy);
-    
-    if (!i) {
-      result->SetMatrix(&capture);
-      result->Rescale(width, height);
-      result->GetMatrixOnCache();
+    if (i % 1 == 0) {
+      delete [] u;
+      delete [] v;
+      hs.CalculateFlow(&u, &v);
     }
 
     int rows = frame->Rows();
     int cols = frame->Columns();
+    double* ptr_x = u, *ptr_y = v;
     for (int x = 0; x < rows; ++x) {
-      for (int y = 0; y < cols; ++y) {
-        double X = vx[x * cols + y];
-        double Y = vy[x * cols + y];
-        uchar flow_x = (X < -5 || 5 < X)? 255: 0;
-        uchar flow_y = (Y < -5 || 5 < X)? 255: 0;
-        result->SetPixel(x, y, flow_x << 16 | flow_y);
+      for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y) {
+        double X = *ptr_x, Y = *ptr_y;
+
+        int hor_color = 0;
+        double intensity = std::min(std::abs(Y) / kIntensity, 1.0);
+        for (int k = 0; k <= 16; k += 8) {
+          int color = (Y < 0)? (kLeft >> k) & 255: (kRight >> k) & 255;
+          hor_color |= static_cast<int>(color * intensity) << k;
+        }
+        int ver_color = 0;
+        intensity = std::min(std::abs(X) / kIntensity, 1.0);
+        for (int k = 0; k <= 16; k += 8) {
+          int color = (X < 0)? (kUp >> k) & 255: (kDown >> k) & 255;
+          ver_color |= static_cast<int>(color * intensity) << k;
+        }
+
+        hs_result->SetPixel(x, y, hor_color | ver_color);
       }
     }
-    result->GetCacheOnMatrix();
-    min.AddFrame(result->GetMatrix());
-    delete [] vx;
-    delete [] vy;
-  }
 
+    hs_result->GetCacheOnMatrix();
+    hs_vf.AddFrame(hs_result->GetMatrix());
+  }
   return 0;
 }

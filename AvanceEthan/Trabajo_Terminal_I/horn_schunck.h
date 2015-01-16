@@ -24,6 +24,7 @@ class HornSchunck {
 	static const int kAvgKernel[3][3];
   static const int kKernelBegin;
   static const int kKernelEnd;
+  static const int kFrameSize;
   
 	double* LocalAverage(double*);
 

@@ -23,6 +23,8 @@ int Frame::Columns() const {
 }
 
 void Frame::Rescale(int width, int height) {
+  // Do not resize with negative values
+  if (width < 0 || height < 0) return;
   cv::Mat matrix_copy;
   matrix.copyTo(matrix_copy);
   cv::resize(matrix_copy, matrix,
@@ -32,16 +34,22 @@ void Frame::Rescale(int width, int height) {
 }
 
 int Frame::GetPixel(int x, int y) const {
+  // Out-of-bounds conditions
+  if (x < 0 || Rows() <= x) return 0;
+  if (y < 0 || Columns() <= y) return 0;
   // Fast getter with Mat cache
   if (cached) return matrix_cache[x * Columns() + y];
   // Return simple grayscale integer
   if (grayscale) return matrix.at<uchar>(x, y);
   // Casting RGB vector to simple integer
   cv::Vec3b v = matrix.at<cv::Vec3b>(x, y);
-  return (v[2] << 16) + (v[1] << 8) + v[0];
+  return (v[2] << 16) | (v[1] << 8) | v[0];
 }
 
 void Frame::SetPixel(int x, int y, int pixel) {
+  // Out-of-bounds conditions
+  if (x < 0 || Rows() <= x) return;
+  if (y < 0 || Columns() <= y) return;
   if (cached) {
     // Fast assignment with Mat cache
     matrix_cache[x * Columns() + y] = pixel;
@@ -111,9 +119,9 @@ void Frame::GetCacheOnMatrix() {
         *(row++) = *pointer;
       } else {
         // Integer conversion to RGB
-        *(row++) = (*pointer >> 16) & 255;
-        *(row++) = (*pointer >> 8) & 255;
         *(row++) = *pointer & 255;
+        *(row++) = (*pointer >> 8) & 255;
+        *(row++) = (*pointer >> 16) & 255;
       }
     }
   }
