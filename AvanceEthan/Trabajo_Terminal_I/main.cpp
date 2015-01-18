@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
   double* u = NULL, *v = NULL;
   Frame* hs_result = new Frame(false);
   std::cout << "\n\nStarting process.\n";
-  for (int i = 0; true; ++i) {
+  for (int i = 0; 1 < 1000; ++i) {
     std::cout << "Processing frame " << i << ".\n";
 
     vcapture >> capture;

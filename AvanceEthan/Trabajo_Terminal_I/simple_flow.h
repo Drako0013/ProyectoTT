@@ -34,11 +34,13 @@ private:
 	void CrossBilateralFilter(cv::Mat &orig, Frame &edge, cv::Mat& confidence, cv::Mat& dest);
 	void CalcOcclusion(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat& vel_y, cv::Mat& vel_x_inv, cv::Mat& vel_y_inv, std::vector< std::vector<bool> >& isOccludedPixel);
 	void CalcConfidence(Frame& cur, Frame& next, cv::Mat& confidence);
+	void CalcIrregularityMatrix(cv::Mat flow_x, cv::Mat flow_y, cv::Mat irreg_mat);
 	static const int NeighborhoodSize = 5;
 	static const int Layers = 5;
 	static const double rd;
 	static const double rc;
 	static const double occlusion_limit;
+	static const double threshold;
 };
 
 

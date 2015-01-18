@@ -3,6 +3,7 @@
 const double SimpleFlow::rd = 5.5;
 const double SimpleFlow::rc = 0.08;
 const double SimpleFlow::occlusion_limit = 20.0; //this value has to be defined correctly
+const double SimpleFlow::threshold = 0.25;
 
 cv::Mat SimpleFlow::AddFrame(Frame* frame) {
 	frames.push_back(frame);
@@ -295,4 +296,33 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	vel_x = flow_x;
 	vel_y = flow_y;
 
+}
+
+void SimpleFlow::CalcIrregularityMatrix(cv::Mat flow_x, cv::Mat flow_y, cv::Mat irreg_mat){
+	const int n = SimpleFlow::NeighborhoodSize;
+	int rows = flow_x.rows;
+	int cols = flow_x.cols;
+	//create matrix of bool
+	irreg_mat = cv::Mat(rows, cols, CV_64F);
+	double dif_u = 0.0;
+	double dif_v = 0.0;
+	for (int x = 0; x < rows; x++){
+		bool* ptr_irr = irreg_mat.ptr<bool>(x);
+		for (int y = 0; y < cols; y++, ++ptr_irr){
+			*ptr_irr = false;
+			for (int u = -n; u <= n; ++u) {
+				for (int v = -n; v <= n; ++v) {
+					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
+						double* flow_x_ini_ptr = flow_x.ptr<double>(x) + y;
+						double* flow_y_ini_ptr = flow_y.ptr<double>(x) + y;
+						double* flow_x_ptr = flow_x.ptr<double>(x) + y + v;
+						double* flow_y_ptr = flow_y.ptr<double>(x) + y + v;
+						dif_u = *flow_x_ini_ptr - *flow_x_ptr;
+						dif_v = *flow_y_ini_ptr - *flow_y_ptr;
+						*ptr_irr |= (sqrt( dif_u * dif_u + dif_v * dif_v ) > SimpleFlow::threshold);
+					}
+				}
+			}
+		}
+	}
 }
