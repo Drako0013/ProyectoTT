@@ -31,6 +31,7 @@ class Frame {
   // Cache methods
   void GetMatrixOnCache();
   void GetCacheOnMatrix();
+  void DeleteCache();
 
   Frame Copy();
 

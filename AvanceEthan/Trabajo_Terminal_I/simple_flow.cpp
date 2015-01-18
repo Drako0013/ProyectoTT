@@ -4,10 +4,13 @@ const double SimpleFlow::rd = 5.5;
 const double SimpleFlow::rc = 0.08;
 const double SimpleFlow::occlusion_limit = 20.0; //this value has to be defined correctly
 const double SimpleFlow::threshold = 0.25;
+const int SimpleFlow::NeighborhoodSize = 4;
+const int SimpleFlow::Layers = 5;
 
 cv::Mat SimpleFlow::AddFrame(Frame* frame) {
 	frames.push_back(frame);
 	if (frames.size() > 2) RemoveFrame();
+	else FillDistanceWeightMatrix();
 	return frames.back()->GetMatrix();
 }
 
@@ -29,26 +32,45 @@ int SimpleFlow::GetEnergy(Frame &f1, int x1, int y1, Frame &f2, int x2, int y2){
 	return (redDif * redDif + greenDif * greenDif + blueDif * blueDif);
 }
 
-double SimpleFlow::GetWr(std::vector<int> &energyArray){
+double SimpleFlow::GetWr(int *energyArray, int energySize){
 	double mean = 0.0;
 	int mini = energyArray[0];
-	for (unsigned int i = 0; i < energyArray.size(); i++){
-		mini = std::min(mini, energyArray[i]);
+	for (int i = 0; i < energySize; i++){
+		if (energyArray[i] < mini)
+		{
+			mini = energyArray[i];
+		}
 		mean = mean + (double)energyArray[i];
 	}
-	mean = mean / (double)energyArray.size();
+	mean = mean / (double)energySize;
 	return mean - (double)mini;
 }
 
+void SimpleFlow::FillDistanceWeightMatrix(){
+	distanceWeight = new double*[2 * NeighborhoodSize + 1];
+	for (int i = 0; i < 2 * NeighborhoodSize + 1; i++)
+		distanceWeight[i] = new double[2 * NeighborhoodSize + 1];
+	for (int i = 0; i < 2 * NeighborhoodSize + 1; i++){
+		for (int j = 0; j < 2 * NeighborhoodSize + 1; j++){
+			double dx = NeighborhoodSize - j;
+			double dy = NeighborhoodSize - i;
+			double norm = (dx * dx) + (dy * dy);
+			distanceWeight[i][j] = std::exp(-norm / (2 * rd));
+		}
+	}
+}
 
 double SimpleFlow::GetWd(int x0, int y0, int x, int y){
+	/*
 	int difX = x0 - x;
 	int difY = y0 - y;
 	int norm = (difX * difX) + (difY * difY);
 	return std::exp(-norm / (2 * rd));
+	*/
+	return distanceWeight[std::abs(y - y0)][std::abs(x - x0)];
 }
 
-double SimpleFlow::GetWc(Frame &f1, int x0, int y0, int x, int y){
+double SimpleFlow::GetWc(Frame& f1, int x0, int y0, int x, int y){
 	//double norm = (double)( f1.GetPixel(x0, y0) - f1.GetPixel(x, y) );
 	int color1 = f1.GetPixel(x0, y0);
 	int color2 = f1.GetPixel(x, y);
@@ -64,12 +86,13 @@ double SimpleFlow::getSmoothness(Frame &f1, Frame &f2, int x0, int y0, int u, in
 	int rows = f1.Rows();
 	int cols = f1.Columns();
 
+
 	double e = GetEnergy(f1, x0, y0, f2, x0 + u, y0 + v);
 	double result = 0.0f;
 	for (int i = -n; i <= n; ++i) {
 		for (int j = -n; j <= n; ++j) {
 			if (x0 + i >= 0 && x0 + i < rows && y0 + j >= 0 && y0 + j < cols) {
-				result += GetWd(x0, y0, x0 + i, y0 + j) * GetWc(f1, x0, y0, x0 + i, y0 + j) * e;
+				result += distanceWeight[std::abs(i)][std::abs(j)] * GetWc(f1, x0, y0, x0 + i, y0 + j) * e;
 			}
 		}
 	}
@@ -103,7 +126,7 @@ void SimpleFlow::CrossBilateralFilter(cv::Mat &orig, Frame &edge, cv::Mat& confi
 			for (int i = -n; i <= n; ++i) {
 				for (int j = -n; j <= n; ++j) {
 					if (x + i >= 0 && x + i < rows && y + j >= 0 && y + j < cols) {
-						result += (*ptr_orig) * GetWd(x, y, x + i, y + j) * GetWc(edge, x, y, x + i, y + j) * wr;
+						result += (*ptr_orig) * distanceWeight[std::abs(i)][std::abs(j)] * GetWc(edge, x, y, x + i, y + j) * wr;
 					}
 				}
 			}
@@ -179,8 +202,8 @@ void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 	int rows = cur.Rows();
 	int cols = cur.Columns();
 
-	double me;
-	double E[n * 2 + 1][n * 2 + 1]; // Due to obvious limitations of arrays, E(u, v) is represented by E[u + n][v + n]
+	double me, e;
+	//double E[n * 2 + 1][n * 2 + 1]; // Due to obvious limitations of arrays, E(u, v) is represented by E[u + n][v + n]
 
 	vel_x = cv::Mat(rows, cols, CV_64F);
 	vel_y = cv::Mat(rows, cols, CV_64F);
@@ -190,17 +213,24 @@ void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 		int* ptr_irreg = irreg.ptr<int>(x);
 		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y, ++ptr_irreg) {
 			if (*ptr_irreg) {
+				me = std::numeric_limits<double>::max();
 				for (int u = -n; u <= n; ++u) {
 					for (int v = -n; v <= n; ++v) {
 						if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
-							E[u + n][v + n] = std::numeric_limits<double>::max();
+							//E[u + n][v + n] = std::numeric_limits<double>::max();
 						}
 						else {
-							E[u + n][v + n] = SimpleFlow::getSmoothness(cur, next, x, y, u + *ptr_x, v + *ptr_y);
+							//E[u + n][v + n] = SimpleFlow::getSmoothness(cur, next, x, y, u + *ptr_x, v + *ptr_y);
+							e = SimpleFlow::getSmoothness(cur, next, x, y, u + *ptr_x, v + *ptr_y);
+							if (e < me) {
+								me = e;
+								*ptr_x = u;
+								*ptr_y = v;
+							}
 						}
 					}
 				}
-				me = std::numeric_limits<double>::max();
+				/*
 				// TODO: Sub-pixel estimation (low priority)
 				for (int u = -n; u <= n; ++u) {
 					for (int v = -n; v <= n; ++v) {
@@ -211,6 +241,7 @@ void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 						}
 					}
 				}
+				*/
 			}
 		}
 	}
@@ -218,22 +249,23 @@ void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 
 void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& confidence) {
 	const int n = SimpleFlow::NeighborhoodSize;
-	std::vector<int> energyArray;
+	int energyArray[(2 * n + 1) * (2 * n + 1)], energySize;
 	int rows = cur.Rows();
 	int cols = next.Columns();
 	confidence = cv::Mat(rows, cols, CV_64F);
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_wr = confidence.ptr<double>(x);
 		for (int y = 0; y < cols; ++y, ++ptr_wr){
-			energyArray.clear();
+			energySize = 0;
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
 					if (x >= 0 && x < rows && y >= 0 && y < cols && x + u >= 0 && x + u < rows && y + v >= 0 && y + v < cols) {
-						energyArray.push_back(GetEnergy(cur, x, y, next, x + u, y + v));
+						energyArray[energySize] = GetEnergy(cur, x, y, next, x + u, y + v);
+						energySize++;
 					}
 				}
 			}
-			*ptr_wr = GetWr(energyArray);
+			*ptr_wr = GetWr(energyArray, energySize);
 		}
 	}
 }
@@ -316,9 +348,9 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 		flow_y = UpscaleFlow(flow_y, curr_rows, curr_cols, p_cur, confidence);
 		flow_inv_y = UpscaleFlow(flow_y, curr_rows, curr_cols, p_next, confidence_inv);
 
-		resize(irreg, new_irreg, cv::Size(curr_rows, curr_cols), 0, 0, cv::INTER_NEAREST);
+		resize(irreg, new_irreg, cv::Size(curr_cols, curr_rows), 0, 0, cv::INTER_NEAREST);
 		irreg = new_irreg;
-		resize(irreg_inv, new_irreg, cv::Size(curr_rows, curr_cols), 0, 0, cv::INTER_NEAREST);
+		resize(irreg_inv, new_irreg, cv::Size(curr_cols, curr_rows), 0, 0, cv::INTER_NEAREST);
 		irreg_inv = new_irreg;
 
 		CalcConfidence(cur, next, confidence);
@@ -369,6 +401,7 @@ void SimpleFlow::CalcIrregularityMatrix(cv::Mat& flow_x, cv::Mat& flow_y, cv::Ma
 					}
 				}
 			}
+			*ptr_irr = *ptr_irr ? std::numeric_limits<int>::max() : 0;
 		}
 	}
 }

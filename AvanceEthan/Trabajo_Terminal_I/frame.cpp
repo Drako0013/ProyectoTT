@@ -117,6 +117,10 @@ void Frame::GetMatrixOnCache() {
   cached = true;
 }
 
+void Frame::DeleteCache() {
+	if (cached) delete[] matrix_cache;
+}
+
 void Frame::GetCacheOnMatrix() {
   if (!cached) return;
   int rows = Rows();
