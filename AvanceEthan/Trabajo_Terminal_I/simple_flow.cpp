@@ -315,8 +315,8 @@ void SimpleFlow::CalcIrregularityMatrix(cv::Mat flow_x, cv::Mat flow_y, cv::Mat 
 					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
 						double* flow_x_ini_ptr = flow_x.ptr<double>(x) + y;
 						double* flow_y_ini_ptr = flow_y.ptr<double>(x) + y;
-						double* flow_x_ptr = flow_x.ptr<double>(x) + y + v;
-						double* flow_y_ptr = flow_y.ptr<double>(x) + y + v;
+						double* flow_x_ptr = flow_x.ptr<double>(x + u) + y + v;
+						double* flow_y_ptr = flow_y.ptr<double>(x + u) + y + v;
 						dif_u = *flow_x_ini_ptr - *flow_x_ptr;
 						dif_v = *flow_y_ini_ptr - *flow_y_ptr;
 						*ptr_irr |= (sqrt( dif_u * dif_u + dif_v * dif_v ) > SimpleFlow::threshold);
