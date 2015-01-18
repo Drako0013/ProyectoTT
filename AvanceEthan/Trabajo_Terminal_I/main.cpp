@@ -183,8 +183,8 @@ int main(int argc, char** argv) {
 		continue;
 	}
 
-	int rows = frame->Rows();
-	int cols = frame->Columns();
+	int rows = u.rows;
+	int cols = u.cols;
 	
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_x = u.ptr<double>(x);

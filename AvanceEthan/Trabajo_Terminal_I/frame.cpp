@@ -18,7 +18,7 @@ Frame Frame::Copy() {
 }
 
 Frame::~Frame() {
-	//It would be useful to have shared_ptr's here... :c
+	//TODO: Implement via std::shared_ptr
 	//if (cached) delete [] matrix_cache;
 }
 
