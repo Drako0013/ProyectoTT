@@ -137,7 +137,7 @@ void SimpleFlow::BilateralFilter(cv::Mat flow_x, cv::Mat flow_y, Frame cur, Fram
 				*ptr_y_f = 0.0;
 				for (int u = -n; u <= n; ++u) {
 					for (int v = -n; v <= n; ++v) {
-						if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
+						if (x + u >= 0 && x + u < rows && y + v >= 0 && y + v < cols) {
 							*ptr_x_f += GetWd(x, y, x + u, y + v) * GetWc(cur, x, y, x + u, y + v) * wr;
 							*ptr_y_f += GetWd(x, y, x + u, y + v) * GetWc(cur, x, y, x + u, y + v) * wr;
 						}
@@ -173,7 +173,7 @@ void SimpleFlow::CalcOcclusion(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 	}
 }
 
-void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat& vel_y) {
+void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat& vel_y, cv::Mat& irreg) {
 	const int n = SimpleFlow::NeighborhoodSize;
 
 	int rows = cur.Rows();
@@ -187,26 +187,28 @@ void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 	for (int x = 0; x < rows; ++x) {
 		double* ptr_x = vel_x.ptr<double>(x);
 		double* ptr_y = vel_y.ptr<double>(x);
-
-		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y) {
-			for (int u = -n; u <= n; ++u) {
-				for (int v = -n; v <= n; ++v) {
-					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
-						E[u + n][v + n] = std::numeric_limits<double>::max();
-					}
-					else {
-						E[u + n][v + n] = SimpleFlow::getSmoothness(cur, next, x, y, u, v);
+		int* ptr_irreg = irreg.ptr<int>(x);
+		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y, ++ptr_irreg) {
+			if (*ptr_irreg) {
+				for (int u = -n; u <= n; ++u) {
+					for (int v = -n; v <= n; ++v) {
+						if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
+							E[u + n][v + n] = std::numeric_limits<double>::max();
+						}
+						else {
+							E[u + n][v + n] = SimpleFlow::getSmoothness(cur, next, x, y, u + *ptr_x, v + *ptr_y);
+						}
 					}
 				}
-			}
-			me = std::numeric_limits<double>::max();
-			// TODO: Sub-pixel estimation (low priority)
-			for (int u = -n; u <= n; ++u) {
-				for (int v = -n; v <= n; ++v) {
-					if (E[u + n][v + n] < me) {
-						me = E[u + n][v + n];
-						*ptr_x = u;
-						*ptr_y = v;
+				me = std::numeric_limits<double>::max();
+				// TODO: Sub-pixel estimation (low priority)
+				for (int u = -n; u <= n; ++u) {
+					for (int v = -n; v <= n; ++v) {
+						if (E[u + n][v + n] < me) {
+							me = E[u + n][v + n];
+							*ptr_x = u;
+							*ptr_y = v;
+						}
 					}
 				}
 			}
@@ -236,13 +238,43 @@ void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& confidence) {
 	}
 }
 
+static inline float interpolateVal(int w, int h, double v11, double v12, double v21, double v22, int r, int c) {
+	   if (r == 0 && c == 0) { return v11; }
+	   if (r == 0 && c == w) { return v12; }
+	   if (r == h && c == 0) { return v21; }
+	   if (r == h && c == w) { return v22; }
+	   float qr = (double)r / h;
+	   float pr = 1.0 - qr;
+	   float qc = (double)c / w;
+	   float pc = 1.0 - qc;
+	   return v11 * pr * pc + v12 * pr * qc + v21 * qr * pc + v22 * qc * qr;
+}
+
+void SimpleFlow::CalcRegularFlow(cv::Mat& flow_x, cv::Mat& flow_y, cv::Mat& irreg) {
+	const int n = SimpleFlow::NeighborhoodSize;
+	int rows = flow_x.rows;
+	int cols = flow_x.cols;
+	for (int x = 0; x < rows; ++x) {
+		double* ptr_x = flow_x.ptr<double>(x);
+		double* ptr_y = flow_y.ptr<double>(x);
+		int* ptr_irreg = irreg.ptr<int>(x);
+		for (int y = 0; y < cols; ++y, ++ptr_x, ++ptr_y, ++ptr_irreg) {
+			if (!(*ptr_irreg)) {
+				int l = std::max(x - n, 0), r = std::min(x + n, rows - 1), u = std::max(y - n, 0), d = std::min(y + n, cols - 1);
+				*ptr_x = interpolateVal(l - r, u - d, flow_x.at<double>(l, y), flow_x.at<double>(r, u), flow_x.at<double>(l, d), flow_x.at<double>(r, d), x - l, y - u);
+				*ptr_y = interpolateVal(l - r, u - d, flow_y.at<double>(l, y), flow_y.at<double>(r, u), flow_y.at<double>(l, d), flow_y.at<double>(r, d), x - l, y - u);
+			}
+		}
+	}
+}
+
 void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 
 	if (frames.size() < 2) {
 		return;
 	}
 
-	cv::Mat flow_x, flow_y, flow_inv_x, flow_inv_y, confidence, confidence_inv;
+	cv::Mat flow_x, flow_y, flow_inv_x, flow_inv_y, confidence, confidence_inv, irreg, irreg_inv, new_irreg;
 
 	std::vector<Frame> pyramid_cur, pyramid_next;
 
@@ -252,8 +284,11 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	std::vector< std::vector<bool> > isOccluded(pyramid_cur.back().Rows(), std::vector<bool>(pyramid_cur.back().Columns()));
 	std::vector< std::vector<bool> > isOccludedInv(pyramid_cur.back().Rows(), std::vector<bool>(pyramid_cur.back().Columns()));
 
-	CalcStageFlow(pyramid_cur.back(), pyramid_next.back(), flow_x, flow_y);
-	CalcStageFlow(pyramid_next.back(), pyramid_cur.back(), flow_inv_x, flow_inv_y);
+	irreg = cv::Mat::ones(pyramid_cur.back().GetMatrix().size(), CV_64F);
+	irreg_inv = cv::Mat::ones(pyramid_cur.back().GetMatrix().size(), CV_64F);
+
+	CalcStageFlow(pyramid_cur.back(), pyramid_next.back(), flow_x, flow_y, irreg);
+	CalcStageFlow(pyramid_next.back(), pyramid_cur.back(), flow_inv_x, flow_inv_y, irreg_inv);
 
 	CalcOcclusion(pyramid_cur.back(), pyramid_next.back(), flow_x, flow_y, flow_inv_x, flow_inv_y, isOccluded);
 	CalcOcclusion(pyramid_next.back(), pyramid_cur.back(), flow_inv_x, flow_inv_y, flow_x, flow_y, isOccludedInv);
@@ -273,16 +308,27 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 		std::vector< std::vector<bool> > isOccluded(curr_rows, std::vector<bool>(curr_cols));
 		std::vector< std::vector<bool> > isOccludedInv(curr_rows, std::vector<bool>(curr_cols));
 
+		CalcIrregularityMatrix(flow_x, flow_y, irreg);
+		CalcIrregularityMatrix(flow_inv_x, flow_inv_y, irreg_inv);
+
 		flow_x = UpscaleFlow(flow_x, curr_rows, curr_cols, p_cur, confidence);
 		flow_inv_x = UpscaleFlow(flow_x, curr_rows, curr_cols, p_next, confidence_inv);
 		flow_y = UpscaleFlow(flow_y, curr_rows, curr_cols, p_cur, confidence);
 		flow_inv_y = UpscaleFlow(flow_y, curr_rows, curr_cols, p_next, confidence_inv);
 
+		resize(irreg, new_irreg, cv::Size(curr_rows, curr_cols), 0, 0, cv::INTER_NEAREST);
+		irreg = new_irreg;
+		resize(irreg_inv, new_irreg, cv::Size(curr_rows, curr_cols), 0, 0, cv::INTER_NEAREST);
+		irreg_inv = new_irreg;
+
 		CalcConfidence(cur, next, confidence);
 		CalcConfidence(next, cur, confidence_inv);
 
-		CalcStageFlow(cur, next, flow_x, flow_y);
-		CalcStageFlow(next, cur, flow_inv_x, flow_inv_y);
+		CalcStageFlow(cur, next, flow_x, flow_y, irreg);
+		CalcStageFlow(next, cur, flow_inv_x, flow_inv_y, irreg_inv);
+
+		CalcRegularFlow(flow_x, flow_y, irreg);
+		CalcRegularFlow(flow_x, flow_y, irreg_inv);
 
 		CalcOcclusion(cur, next, flow_x, flow_y, flow_inv_x, flow_inv_y, isOccluded);
 		CalcOcclusion(next, cur, flow_inv_x, flow_inv_y, flow_x, flow_y, isOccludedInv);
@@ -298,21 +344,21 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 
 }
 
-void SimpleFlow::CalcIrregularityMatrix(cv::Mat flow_x, cv::Mat flow_y, cv::Mat irreg_mat){
+void SimpleFlow::CalcIrregularityMatrix(cv::Mat& flow_x, cv::Mat& flow_y, cv::Mat& irreg_mat){
 	const int n = SimpleFlow::NeighborhoodSize;
 	int rows = flow_x.rows;
 	int cols = flow_x.cols;
 	//create matrix of bool
-	irreg_mat = cv::Mat(rows, cols, CV_64F);
+	irreg_mat = cv::Mat(rows, cols, CV_32S);
 	double dif_u = 0.0;
 	double dif_v = 0.0;
 	for (int x = 0; x < rows; x++){
-		bool* ptr_irr = irreg_mat.ptr<bool>(x);
+		int* ptr_irr = irreg_mat.ptr<int>(x);
 		for (int y = 0; y < cols; y++, ++ptr_irr){
 			*ptr_irr = false;
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
-					if (x + u < 0 || x + u >= rows || y + v < 0 || y + v >= cols) {
+					if (x + u > 0 && x + u >= rows && y + v < 0 && y + v >= cols) {
 						double* flow_x_ini_ptr = flow_x.ptr<double>(x) + y;
 						double* flow_y_ini_ptr = flow_y.ptr<double>(x) + y;
 						double* flow_x_ptr = flow_x.ptr<double>(x + u) + y + v;
