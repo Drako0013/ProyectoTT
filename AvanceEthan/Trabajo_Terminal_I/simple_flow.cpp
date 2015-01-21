@@ -230,13 +230,13 @@ void SimpleFlow::CalcStageFlow(Frame& cur, Frame& next, cv::Mat& vel_x, cv::Mat&
 				/*
 				// TODO: Sub-pixel estimation (low priority)
 				for (int u = -n; u <= n; ++u) {
-					for (int v = -n; v <= n; ++v) {
-						if (E[u + n][v + n] < me) {
-							me = E[u + n][v + n];
-							*ptr_x = u;
-							*ptr_y = v;
-						}
-					}
+				for (int v = -n; v <= n; ++v) {
+				if (E[u + n][v + n] < me) {
+				me = E[u + n][v + n];
+				*ptr_x = u;
+				*ptr_y = v;
+				}
+				}
 				}
 				*/
 			}
@@ -256,12 +256,12 @@ void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& confidence) {
 			energySize = 0;
 			/*
 			for (int u = -n; u <= n; ++u) {
-				for (int v = -n; v <= n; ++v) {
-					if (x >= 0 && x < rows && y >= 0 && y < cols && x + u >= 0 && x + u < rows && y + v >= 0 && y + v < cols) {
-						energyArray[energySize] = GetEnergy(cur, x, y, next, x + u, y + v);
-						energySize++;
-					}
-				}
+			for (int v = -n; v <= n; ++v) {
+			if (x >= 0 && x < rows && y >= 0 && y < cols && x + u >= 0 && x + u < rows && y + v >= 0 && y + v < cols) {
+			energyArray[energySize] = GetEnergy(cur, x, y, next, x + u, y + v);
+			energySize++;
+			}
+			}
 			}
 			*ptr_wr = GetWr(energyArray, energySize);*/
 			*ptr_wr = 1;
@@ -270,15 +270,15 @@ void SimpleFlow::CalcConfidence(Frame& cur, Frame& next, cv::Mat& confidence) {
 }
 
 static inline float interpolateVal(int w, int h, double v11, double v12, double v21, double v22, int r, int c) {
-	   if (r == 0 && c == 0) { return v11; }
-	   if (r == 0 && c == w) { return v12; }
-	   if (r == h && c == 0) { return v21; }
-	   if (r == h && c == w) { return v22; }
-	   float qr = (double)r / h;
-	   float pr = 1.0 - qr;
-	   float qc = (double)c / w;
-	   float pc = 1.0 - qc;
-	   return v11 * pr * pc + v12 * pr * qc + v21 * qr * pc + v22 * qc * qr;
+	if (r == 0 && c == 0) { return v11; }
+	if (r == 0 && c == w) { return v12; }
+	if (r == h && c == 0) { return v21; }
+	if (r == h && c == w) { return v22; }
+	float qr = (double)r / h;
+	float pr = 1.0 - qr;
+	float qc = (double)c / w;
+	float pc = 1.0 - qc;
+	return v11 * pr * pc + v12 * pr * qc + v21 * qr * pc + v22 * qc * qr;
 }
 
 void SimpleFlow::CalcRegularFlow(cv::Mat& flow_x, cv::Mat& flow_y, cv::Mat& irreg) {
@@ -342,10 +342,10 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 
 	/*
 	for (int x = 0; x < flow_x.rows; ++x) {
-		for (int y = 0; y < flow_x.cols; ++y) {
-			printf("%5d ", pyramid_cur.back().GetPixel(x, y) - pyramid_next.back().GetPixel(x, y));
-		}
-		puts("");
+	for (int y = 0; y < flow_x.cols; ++y) {
+	printf("%5d ", pyramid_cur.back().GetPixel(x, y) - pyramid_next.back().GetPixel(x, y));
+	}
+	puts("");
 	}
 	puts("");
 	*/
@@ -392,23 +392,23 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 
 		/*
 		for (int x = 0; x < flow_x.rows; ++x) {
-			double* ptr_x = flow_x.ptr<double>(x);
-			double* ptr_y = flow_y.ptr<double>(x);
-			for (int y = 0; y < flow_x.cols; ++y, ++ptr_x, ++ptr_y) {
-				printf("%.2lf ", sqrt((*ptr_x * *ptr_x) + (*ptr_y * *ptr_y)));
-			}
-			puts("");
+		double* ptr_x = flow_x.ptr<double>(x);
+		double* ptr_y = flow_y.ptr<double>(x);
+		for (int y = 0; y < flow_x.cols; ++y, ++ptr_x, ++ptr_y) {
+		printf("%.2lf ", sqrt((*ptr_x * *ptr_x) + (*ptr_y * *ptr_y)));
+		}
+		puts("");
 		}
 
 		puts("");
 
 		for (int x = 0; x < flow_x.rows; ++x) {
-			double* ptr_x = flow_inv_x.ptr<double>(x);
-			double* ptr_y = flow_inv_y.ptr<double>(x);
-			for (int y = 0; y < flow_x.cols; ++y, ++ptr_x, ++ptr_y) {
-				printf("%.2lf ", sqrt((*ptr_x * *ptr_x) + (*ptr_y * *ptr_y)));
-			}
-			puts("");
+		double* ptr_x = flow_inv_x.ptr<double>(x);
+		double* ptr_y = flow_inv_y.ptr<double>(x);
+		for (int y = 0; y < flow_x.cols; ++y, ++ptr_x, ++ptr_y) {
+		printf("%.2lf ", sqrt((*ptr_x * *ptr_x) + (*ptr_y * *ptr_y)));
+		}
+		puts("");
 		}
 
 		puts("");
@@ -458,13 +458,13 @@ void SimpleFlow::CalcIrregularityMatrix(cv::Mat& flow_x, cv::Mat& flow_y, cv::Ma
 			for (int u = -n; u <= n; ++u) {
 				for (int v = -n; v <= n; ++v) {
 					if (x + u >= 0 && x + u < cols && y + v >= 0 && y + v < rows) {
-						double* flow_x_ini_ptr = flow_x.ptr<double>(y) + x;
-						double* flow_y_ini_ptr = flow_y.ptr<double>(y) + x;
+						double* flow_x_ini_ptr = flow_x.ptr<double>(y) +x;
+						double* flow_y_ini_ptr = flow_y.ptr<double>(y) +x;
 						double* flow_x_ptr = flow_x.ptr<double>(y + v) + x + u;
 						double* flow_y_ptr = flow_y.ptr<double>(y + v) + x + u;
 						dif_u = *flow_x_ini_ptr - *flow_x_ptr;
 						dif_v = *flow_y_ini_ptr - *flow_y_ptr;
-						isIrreg |= (sqrt( dif_u * dif_u + dif_v * dif_v ) > SimpleFlow::threshold);
+						isIrreg |= (sqrt(dif_u * dif_u + dif_v * dif_v) > SimpleFlow::threshold);
 					}
 				}
 			}
