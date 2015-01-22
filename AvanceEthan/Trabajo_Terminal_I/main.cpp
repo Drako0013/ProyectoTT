@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
 	ver_color |= static_cast<int>(color * intensity) << k;
 	}
 
-	lk_result->SetPixel(x, y, hor_color);
+	lk_result->SetPixel(x, y, hor_color | ver_color);
 	}
 	}
 
