@@ -83,6 +83,7 @@
     <ClInclude Include="horn_schunck.h" />
     <ClInclude Include="lucas_kanade.h" />
     <ClInclude Include="simple_flow.h" />
+    <ClInclude Include="test_generator.h" />
     <ClInclude Include="video_factory.h" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +92,7 @@
     <ClCompile Include="lucas_kanade.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="simple_flow.cpp" />
+    <ClCompile Include="test_generator.cpp" />
     <ClCompile Include="video_factory.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
