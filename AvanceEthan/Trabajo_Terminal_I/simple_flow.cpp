@@ -353,6 +353,7 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	CalcStageFlow(pyramid_cur.back(), pyramid_next.back(), flow_x, flow_y, irreg);
 	CalcStageFlow(pyramid_next.back(), pyramid_cur.back(), flow_inv_x, flow_inv_y, irreg_inv);
 
+	/*
 	for (int y = 0; y < flow_x.rows; ++y) {
 		double* ptr_x = flow_x.ptr<double>(y);
 		double* ptr_y = flow_y.ptr<double>(y);
@@ -363,6 +364,8 @@ void SimpleFlow::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 	}
 
 	puts("");
+
+	*/
 
 	CalcOcclusion(flow_x, flow_y, flow_inv_x, flow_inv_y, isOccluded);
 	CalcOcclusion(flow_inv_x, flow_inv_y, flow_x, flow_y, isOccludedInv);
