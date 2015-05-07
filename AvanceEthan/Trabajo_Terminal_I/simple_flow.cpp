@@ -129,7 +129,6 @@ void SimpleFlow::CrossBilateralFilter(cv::Mat &orig, Frame &edge, std::vector< s
 	}
 }
 
-
 cv::Mat SimpleFlow::UpscaleFlow(cv::Mat& flow, int new_rows, int new_cols, Frame &image, std::vector< std::vector<bool> >& isOccludedPixel) {
 	cv::Mat orig_flow = flow;
 	CrossBilateralFilter(orig_flow, image, isOccludedPixel, flow);

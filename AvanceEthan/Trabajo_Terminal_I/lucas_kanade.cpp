@@ -25,7 +25,7 @@ cv::Mat LucasKanade::AddFrame(Frame* frame) {
 
 void LucasKanade::RemoveFrame() {
 	if (frames.size() == 0) return;
-	Frame* frame_to_delete = frames[0];
+	Frame* frame_to_delete = frames.front();
 	frames.erase(frames.begin());
 	delete frame_to_delete;
 }

@@ -19,7 +19,7 @@ Frame Frame::Copy() {
 
 Frame::~Frame() {
 	//TODO: Implement via shared_ptr
-	//if (cached) delete [] matrix_cache;
+	DeleteCache();
 }
 
 int Frame::Rows() const {
