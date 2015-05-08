@@ -24,54 +24,150 @@ const double kIntensity = 4.7;
 //read nameFile starting_number 
 //write to flow10.flo
 
+cv::Point2f point;
+bool addRemovePt = false;
+
 int main(int argc, char** argv) {
+	
+	cv::VideoCapture cap;
+    cv::TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
+    cv::Size subPixWinSize(10,10), winSize(31,31);
+
+    const int MAX_COUNT = 500;
+    bool needToInit = true;
+
+    if( argc == 2 )
+        cap.open(argv[1]);
+
+    if( !cap.isOpened() ) {
+        std::cout << "Could not initialize capturing...\n";
+        return 0;
+    }
+
+    //cv::namedWindow( "LK Demo", 1 );
+    //cv::setMouseCallback( "LK Demo", onMouse, 0 );
+
+    cv::Mat gray, prevGray, image;
+    std::vector<cv::Point2f> points[2];
+
+    for(int nframe = 0; ; nframe++)
+    {
+		std::cout << "Processing " << nframe << std::endl;
+        cv::Mat frame;
+        cap >> frame;
+        if( frame.empty() )
+            break;
+
+        frame.copyTo(image);
+        cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+		
+        if( needToInit ){
+			points[0].clear();
+			for(int i = 0; i < frame.rows; i++){
+				for(int j = 0; j < frame.cols; j++){
+					points[0].push_back(cv::Point2f((float)j, (float)i)); 
+				}
+			}
+            // automatic initialization
+            //goodFeaturesToTrack(gray, points[1], MAX_COUNT, 0.01, 10, cv::Mat(), 3, 0, 0.04);
+            //cornerSubPix(gray, points[1], subPixWinSize, cv::Size(-1,-1), termcrit);
+            //addRemovePt = false;
+        }
+        if( !(points[0].empty()) ){
+            std::vector<uchar> status;
+            std::vector<float> err;
+            if(prevGray.empty())
+                gray.copyTo(prevGray);
+            calcOpticalFlowPyrLK(prevGray, gray, points[0], points[1], status, err, winSize,
+                                 3, termcrit, 0, 0.001);
+            size_t i, j;
+            
+			char fileName[30];
+			sprintf(fileName, "salida_opencv%d.txt", nframe);
+			FILE *out = fopen(fileName, "w");
+			for(i = j = 0; i < points[0].size() && j < points[1].size(); i++){
+				if(i && i % frame.cols == 0) fprintf(out, "\n");
+
+				if( status[i] == 1 || err[i] == 0 ){
+					fprintf(out, "(%.2f, %.2f) ", points[1][j].y - points[0][i].y,  points[1][j].x - points[0][i].x);
+					j++;
+				} else {
+					std::cout << err[i] << std::endl;
+					fprintf(out, "(%.2f, %.2f) ", -1.0, -1.0);
+				}
+			}
+			fclose(out);
+
+			/*
+			for( i = k = 0; i < points[1].size(); i++ ) {
+                if( addRemovePt ) {
+                    if( norm(point - points[1][i]) <= 10000 ) {
+                        addRemovePt = false;
+                        continue;
+                    }
+                }
+				if( !status[i] )
+                    continue;
+				points[1][k++] = points[1][i];
+                //circle( image, points[1][i], 3, cv::Scalar(0,255,0), -1, 8);
+            }
+            points[1].resize(k);
+			*/
+        }
+
+		/*
+        if( addRemovePt && points[1].size() < (size_t)MAX_COUNT )
+        {
+            std::vector<cv::Point2f> tmp;
+            tmp.push_back(point);
+            cornerSubPix( gray, tmp, winSize, cvSize(-1,-1), termcrit);
+            points[1].push_back(tmp[0]);
+            addRemovePt = false;
+        }
+		*/
+        needToInit = false;
+        //std::swap(points[1], points[0]);
+        cv::swap(prevGray, gray);
+    }
+	
+
+	/*
 	if (argc < 3) {
 		std::cout << "Video input file and output directory required.";
 		return 0;
 	}
 
 	cv::VideoCapture vcapture;
-
 	vcapture.open(argv[1]);
 	if (!vcapture.isOpened()) {
 		std::cout << "Could not initialize capturing.\n";
 		return 0;
 	}
-
 	cv::Mat capture;
 	std::string dir = std::string(argv[1]);
-
-	
 	int width = 1920;
 	int height = 1080;
-
 	int orig_width;
 	int orig_height;
-
-	/*
-	TestGenerator::GenerateTest("C:\\Users\\Adonais\\Desktop\\test.avi", 320, 240, 5);
-
-	return 0;
 	*/
-	
+	/*
+		TestGenerator::GenerateTest("C:\\Users\\Adonais\\Desktop\\test.avi", 320, 240, 5);
+		return 0;
+	*/
+	/*
 	LucasKanade lk;
-
 	VideoFactory lk_vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
-
 	cv::Mat vx, vy;
 	std::cout << "\n\nStarting process.\n";
 	int fps = (int)vcapture.get(CV_CAP_PROP_FPS);
 	Frame* lk_result = new Frame(false);
-	
 	//int fileNumber = 7;
 	//char* number = new char[3];
-	
 	for (int i = 0; i <= 30; ++i) {
 		//sprintf(number, "%02d", fileNumber);
 		//std::string fileName = std::string( argv[1] ) + std::string(number) + ".flo";
 		//std::string imageName = std::string( argv[1] ) + std::string(number) + ".png";
 		std::cout << "Processing frame " << i << ".\n";
-
 		//capture = cv::imread(imageName);
 		vcapture >> capture;
 		if (capture.empty()) break;
@@ -138,7 +234,7 @@ int main(int argc, char** argv) {
 		lk_result->GetCacheOnMatrix();
 		lk_vf.AddFrame(lk_result->GetMatrix());
 	}
-	
+	*/
 	
 	/*
 	HornSchunck hs;
@@ -209,6 +305,7 @@ int main(int argc, char** argv) {
 	printf("%d %d\n", i, fps); 
 	printf("Ancho * alto = %d %d\n", orig_width, orig_height);
 	*/
+
 	/*
 	SimpleFlow hs;
 
