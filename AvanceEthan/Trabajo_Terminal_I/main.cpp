@@ -13,7 +13,7 @@
 #include "simple_flow.h"
 #include "test_generator.h"
 
-#define TAG_STRING "PIEH"
+//#define TAG_STRING "PIEH"
 
 const int kUp = 0x00FFFF; // LIGHT BLUE
 const int kDown = 0x00FF00; // GREEN
@@ -30,13 +30,13 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	//cv::VideoCapture vcapture;
+	cv::VideoCapture vcapture;
 
-	//vcapture.open(argv[1]);
-	//if (!vcapture.isOpened()) {
-	//	std::cout << "Could not initialize capturing.\n";
-	//	return 0;
-	//}
+	vcapture.open(argv[1]);
+	if (!vcapture.isOpened()) {
+		std::cout << "Could not initialize capturing.\n";
+		return 0;
+	}
 
 	cv::Mat capture;
 	std::string dir = std::string(argv[1]);
@@ -56,27 +56,27 @@ int main(int argc, char** argv) {
 	
 	LucasKanade lk;
 
-	//VideoFactory lk_vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+	VideoFactory lk_vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
 
 	cv::Mat vx, vy;
-	//std::cout << "\n\nStarting process.\n";
-	//int fps = (int)vcapture.get(CV_CAP_PROP_FPS);
+	std::cout << "\n\nStarting process.\n";
+	int fps = (int)vcapture.get(CV_CAP_PROP_FPS);
 	Frame* lk_result = new Frame(false);
 	
-	int fileNumber = 7;
-	char* number = new char[3];
+	//int fileNumber = 7;
+	//char* number = new char[3];
 	
-	for (fileNumber = 7; fileNumber <= 14; ++fileNumber) {
-		sprintf(number, "%02d", fileNumber);
-		std::string fileName = std::string( argv[1] ) + std::string(number) + ".flo";
-		std::string imageName = std::string( argv[1] ) + std::string(number) + ".png";
-		//std::cout << "Processing frame " << i << ".\n";
+	for (int i = 0; i <= 30; ++i) {
+		//sprintf(number, "%02d", fileNumber);
+		//std::string fileName = std::string( argv[1] ) + std::string(number) + ".flo";
+		//std::string imageName = std::string( argv[1] ) + std::string(number) + ".png";
+		std::cout << "Processing frame " << i << ".\n";
 
-		capture = cv::imread(imageName);
-		//vcapture >> capture;
+		//capture = cv::imread(imageName);
+		vcapture >> capture;
 		if (capture.empty()) break;
 
-		if (fileNumber == 7) {
+		if (i == 0) {
 			lk_result->SetMatrix(&capture);
 			lk_result->Rescale(width, height);
 			lk_result->GetMatrixOnCache();
@@ -96,12 +96,13 @@ int main(int argc, char** argv) {
 
 		lk.CalculateFlow(vx, vy);
 
-		FILE *stream = fopen(fileName.c_str(), "wb");
-		puts(fileName.c_str());
+		//Code for flo file
+		//FILE *stream = fopen(fileName.c_str(), "wb");
+		//puts(fileName.c_str());
 		// write the header
-		fprintf(stream, TAG_STRING);
-		fwrite(&width,  sizeof(int),   1, stream);
-		fwrite(&height, sizeof(int),   1, stream);
+		//fprintf(stream, TAG_STRING);
+		//fwrite(&width,  sizeof(int),   1, stream);
+		//fwrite(&height, sizeof(int),   1, stream);
 		
 		for (int x = 0; x < height; ++x) {
 			double* ptr_vx = vx.ptr<double>(x);
@@ -109,14 +110,15 @@ int main(int argc, char** argv) {
 			for (int y = 0; y < width; ++y, ++ptr_vx, ++ptr_vy) {
 				double X = *ptr_vx, Y = *ptr_vy;
 
-				float xF = (float)X;
-				float yF = (float)Y;
+				//code for flo file
+				//float xF = (float)X;
+				//float yF = (float)Y;
 
 				// write the rows
-				fwrite(&xF, sizeof(float), 1, stream);
-				fwrite(&yF, sizeof(float), 1, stream);
+				//fwrite(&xF, sizeof(float), 1, stream);
+				//fwrite(&yF, sizeof(float), 1, stream);
 
-				/*int hor_color = 0;
+				int hor_color = 0;
 				double intensity = std::min(std::abs(Y) / kIntensity, 1.0);
 				for (int k = 0; k <= 16; k += 8) {
 					int color = (Y < 0)? (kLeft >> k) & 255: (kRight >> k) & 255;
@@ -129,12 +131,12 @@ int main(int argc, char** argv) {
 					ver_color |= static_cast<int>(color * intensity) << k;
 				}
 
-				lk_result->SetPixel(x, y, hor_color | ver_color);*/
+				lk_result->SetPixel(x, y, hor_color | ver_color);
 			}
 		}
-		fclose(stream);
+		//fclose(stream);
 		lk_result->GetCacheOnMatrix();
-		//lk_vf.AddFrame(lk_result->GetMatrix());
+		lk_vf.AddFrame(lk_result->GetMatrix());
 	}
 	
 	
