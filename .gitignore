@@ -154,6 +154,11 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+<<<<<<< HEAD
 *.txt
 *.txt
 AvanceEthan/Trabajo_Terminal_I/salida.txt
+=======
+*.vcxproj
+*.filters
+>>>>>>> a271a22c667e66c3cde4522f956d5f7073e758c0
