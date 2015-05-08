@@ -58,6 +58,8 @@ ipch/
 *.psess
 *.vsp
 *.vspx
+*.vcxproj
+*.vcxproj.filters
 
 # Guidance Automation Toolkit
 *.gpState

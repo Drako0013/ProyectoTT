@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <ctime>
 #include <string>
 #include <iostream>
 
@@ -7,74 +7,55 @@
 #include "opencv2/highgui/highgui.hpp"
 
 #include "frame.h"
+#include "simple_flow.h"
+#include "horn_schunck.h"
 #include "lucas_kanade.h"
 #include "video_factory.h"
-#include "horn_schunck.h"
-#include "simple_flow.h"
 #include "test_generator.h"
 
-//#define TAG_STRING "PIEH"
-
-const int kUp = 0x00FFFF; // LIGHT BLUE
-const int kDown = 0x00FF00; // GREEN
-const int kLeft = 0xFF0000; // RED
+const int kUp = 0x00FFFF;    // LIGHT BLUE
+const int kDown = 0x00FF00;  // GREEN
+const int kLeft = 0xFF0000;  // RED
 const int kRight = 0xFFFF00; // YELLOW
 const double kIntensity = 4.7;
 
-//read nameFile starting_number 
-//write to flow10.flo
-
 int main(int argc, char** argv) {
+  // Video file must be specified.
 	if (argc < 3) {
 		std::cout << "Video input file and output directory required.";
 		return 0;
 	}
-
+  
+  // Capturing video from file.
 	cv::VideoCapture vcapture;
-
 	vcapture.open(argv[1]);
+
+  // If something fail, abort mission.
 	if (!vcapture.isOpened()) {
 		std::cout << "Could not initialize capturing.\n";
 		return 0;
 	}
 
 	cv::Mat capture;
-	std::string dir = std::string(argv[1]);
-
+	std::string dir(argv[2]);
+	int width = 480, height = 360;
 	
-	int width = 1920;
-	int height = 1080;
-
-	int orig_width;
-	int orig_height;
-
-	/*
-	TestGenerator::GenerateTest("C:\\Users\\Adonais\\Desktop\\test.avi", 320, 240, 5);
-
-	return 0;
-	*/
-	
-	LucasKanade lk;
-
-	VideoFactory lk_vf(dir + "-lk-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+	LucasKanade lk; // Lucas Kanade algorithm.
+	VideoFactory lk_vf(dir + "lk-flow.avi", width, height,
+                     vcapture.get(CV_CAP_PROP_FPS));
 
 	cv::Mat vx, vy;
 	std::cout << "\n\nStarting process.\n";
-	int fps = (int)vcapture.get(CV_CAP_PROP_FPS);
+	int fps = (int) vcapture.get(CV_CAP_PROP_FPS);
 	Frame* lk_result = new Frame(false);
 	
-	//int fileNumber = 7;
-	//char* number = new char[3];
-	
-	for (int i = 0; i <= 30; ++i) {
-		//sprintf(number, "%02d", fileNumber);
-		//std::string fileName = std::string( argv[1] ) + std::string(number) + ".flo";
-		//std::string imageName = std::string( argv[1] ) + std::string(number) + ".png";
-		std::cout << "Processing frame " << i << ".\n";
-
-		//capture = cv::imread(imageName);
+	for (int i = 0; i < 30; ++i) {
 		vcapture >> capture;
 		if (capture.empty()) break;
+    std::cout << "\nCaptured frame " << i << ".\n";
+
+		std::cout << "Processing frame " << i << "...\n";
+    std::clock_t start_time = std::clock();
 
 		if (i == 0) {
 			lk_result->SetMatrix(&capture);
@@ -82,68 +63,56 @@ int main(int argc, char** argv) {
 			lk_result->GetMatrixOnCache();
 		}
 
+    // Frame treatment for better performance.
 		Frame* frame = new Frame(&capture);
-
-		orig_width = frame->Columns();
-		orig_height = frame->Rows();
-
-		//width = orig_width / 2;
-		//height = orig_height / 2;
-
 		frame->Rescale(width, height);
 		frame->GetMatrixOnCache();
 		lk.AddFrame(frame);
 
 		lk.CalculateFlow(vx, vy);
-
-		//Code for flo file
-		//FILE *stream = fopen(fileName.c_str(), "wb");
-		//puts(fileName.c_str());
-		// write the header
-		//fprintf(stream, TAG_STRING);
-		//fwrite(&width,  sizeof(int),   1, stream);
-		//fwrite(&height, sizeof(int),   1, stream);
-		
 		for (int x = 0; x < height; ++x) {
 			double* ptr_vx = vx.ptr<double>(x);
 			double* ptr_vy = vy.ptr<double>(x);
 			for (int y = 0; y < width; ++y, ++ptr_vx, ++ptr_vy) {
 				double X = *ptr_vx, Y = *ptr_vy;
 
-				//code for flo file
-				//float xF = (float)X;
-				//float yF = (float)Y;
-
-				// write the rows
-				//fwrite(&xF, sizeof(float), 1, stream);
-				//fwrite(&yF, sizeof(float), 1, stream);
-
 				int hor_color = 0;
+        // Color scheme for the horizontal movement.
 				double intensity = std::min(std::abs(Y) / kIntensity, 1.0);
 				for (int k = 0; k <= 16; k += 8) {
 					int color = (Y < 0)? (kLeft >> k) & 255: (kRight >> k) & 255;
 					hor_color |= static_cast<int>(color * intensity) << k;
 				}
+
 				int ver_color = 0;
+        // Color scheme for the vertical movement.
 				intensity = std::min(std::abs(X) / kIntensity, 1.0);
 				for (int k = 0; k <= 16; k += 8) {
 					int color = (X < 0)? (kUp >> k) & 255: (kDown >> k) & 255;
 					ver_color |= static_cast<int>(color * intensity) << k;
 				}
 
+        // Set the pixel for video result.
 				lk_result->SetPixel(x, y, hor_color | ver_color);
 			}
 		}
-		//fclose(stream);
+
+    // Print processing time for this frame.
+    std::cout << "Finished processing frame " << i << ".\n";
+    std::clock_t ptime = (std::clock() - start_time) / (double) (CLOCKS_PER_SEC / 1000);
+    std::cout << "Processing time: " << ptime << " ms.\n";
+		
+    // Video result generation.
 		lk_result->GetCacheOnMatrix();
 		lk_vf.AddFrame(lk_result->GetMatrix());
 	}
 	
 	
-	/*
+  /*
+	
 	HornSchunck hs;
 
-	VideoFactory hs_vf(dir + "-hs-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
+	VideoFactory hs_vf(dir + "hs-flow.avi", width, height, vcapture.get(CV_CAP_PROP_FPS));
 
 	double* u = NULL, *v = NULL;
 	Frame* hs_result = new Frame(false);
@@ -152,8 +121,8 @@ int main(int argc, char** argv) {
 	int i = 0;
 
 	//std::cout << "\n\nStarting process.\n";
-	for (i = 0; i < fps * 10; ++i) {
-	//std::cout << "Processing frame " << i << ".\n";
+	for (i = 0; i < fps; ++i) {
+	std::cout << "Processing frame " << i << ".\n";
 
 	vcapture >> capture;
 	if (capture.empty()) break;
@@ -208,7 +177,8 @@ int main(int argc, char** argv) {
 	}
 	printf("%d %d\n", i, fps); 
 	printf("Ancho * alto = %d %d\n", orig_width, orig_height);
-	*/
+	
+  */
 	/*
 	SimpleFlow hs;
 
