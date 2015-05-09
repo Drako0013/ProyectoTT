@@ -13,18 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Flow_code">
-      <UniqueIdentifier>{d97bbec3-6246-415b-a2e9-8ee277fe1a56}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Flow_code\imageLib">
-      <UniqueIdentifier>{c3e88815-2594-4b91-8cc7-66b92f11dc42}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="png">
-      <UniqueIdentifier>{5318310f-e952-4287-bf86-8cb62dc0185b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="zlib">
-      <UniqueIdentifier>{a87e5773-234c-42f3-8ce9-228882c02ff6}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="frame.h">
@@ -44,36 +32,6 @@
     </ClInclude>
     <ClInclude Include="test_generator.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\colorcode.h">
-      <Filter>Flow_code</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\flowIO.h">
-      <Filter>Flow_code</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\Convert.h">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\Convolve.h">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\Copyright.h">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\Error.h">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\Image.h">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\ImageIO.h">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\imageLib.h">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClInclude>
-    <ClInclude Include="flow-code\imageLib\RefCntMem.h">
-      <Filter>Flow_code\imageLib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -97,126 +55,6 @@
     </ClCompile>
     <ClCompile Include="test_generator.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\color_flow.cpp">
-      <Filter>Flow_code</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\colorcode.cpp">
-      <Filter>Flow_code</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\colortest.cpp">
-      <Filter>Flow_code</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\flowIO.cpp">
-      <Filter>Flow_code</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\imageLib\Convert.cpp">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\imageLib\Convolve.cpp">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\imageLib\Image.cpp">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\imageLib\ImageIO.cpp">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\imageLib\ImageIOpng.cpp">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClCompile>
-    <ClCompile Include="flow-code\imageLib\RefCntMem.cpp">
-      <Filter>Flow_code\imageLib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\png.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngerror.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngget.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngmem.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngpread.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngread.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngrio.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngrtran.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngrutil.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngset.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngtrans.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwio.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwrite.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwtran.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwutil.c">
-      <Filter>png</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\adler32.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\compress.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\crc32.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\deflate.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzclose.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzlib.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzread.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzwrite.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\infback.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\inffast.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\inflate.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\inftrees.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\trees.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\uncompr.c">
-      <Filter>zlib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\zutil.c">
-      <Filter>zlib</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
