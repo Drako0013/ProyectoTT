@@ -145,16 +145,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="flow-code\colorcode.h" />
-    <ClInclude Include="flow-code\flowIO.h" />
-    <ClInclude Include="flow-code\imageLib\Convert.h" />
-    <ClInclude Include="flow-code\imageLib\Convolve.h" />
-    <ClInclude Include="flow-code\imageLib\Copyright.h" />
-    <ClInclude Include="flow-code\imageLib\Error.h" />
-    <ClInclude Include="flow-code\imageLib\Image.h" />
-    <ClInclude Include="flow-code\imageLib\ImageIO.h" />
-    <ClInclude Include="flow-code\imageLib\imageLib.h" />
-    <ClInclude Include="flow-code\imageLib\RefCntMem.h" />
     <ClInclude Include="frame.h" />
     <ClInclude Include="horn_schunck.h" />
     <ClInclude Include="lucas_kanade.h" />
@@ -163,46 +153,6 @@
     <ClInclude Include="video_factory.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\png.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngerror.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngget.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngmem.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngpread.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngread.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngrio.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngrtran.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngrutil.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngset.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngtrans.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwio.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwrite.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwtran.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\lpng1617\pngwutil.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\adler32.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\compress.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\crc32.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\deflate.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzclose.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzlib.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzread.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\gzwrite.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\infback.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\inffast.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\inflate.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\inftrees.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\trees.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\uncompr.c" />
-    <ClCompile Include="..\..\..\..\..\..\..\libpng\zlib-1.2.8\zutil.c" />
-    <ClCompile Include="flow-code\colorcode.cpp" />
-    <ClCompile Include="flow-code\colortest.cpp" />
-    <ClCompile Include="flow-code\color_flow.cpp" />
-    <ClCompile Include="flow-code\flowIO.cpp" />
-    <ClCompile Include="flow-code\imageLib\Convert.cpp" />
-    <ClCompile Include="flow-code\imageLib\Convolve.cpp" />
-    <ClCompile Include="flow-code\imageLib\Image.cpp" />
-    <ClCompile Include="flow-code\imageLib\ImageIO.cpp" />
-    <ClCompile Include="flow-code\imageLib\ImageIOpng.cpp" />
-    <ClCompile Include="flow-code\imageLib\RefCntMem.cpp" />
     <ClCompile Include="frame.cpp" />
     <ClCompile Include="horn_schunck.cpp" />
     <ClCompile Include="lucas_kanade.cpp" />
