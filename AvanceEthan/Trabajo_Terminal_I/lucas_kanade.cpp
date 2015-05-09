@@ -31,8 +31,8 @@ void LucasKanade::RemoveFrame() {
 }
 
 void LucasKanade::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
-	double* grad_x, *grad_y, *grad_t;
-	GradientSmoothing(&grad_x, &grad_y, &grad_t);
+	double* grad_xx, *grad_xy, *grad_yy, *grad_xt, *grad_yt;
+	GradientSmoothing(&grad_xx, &grad_xy, &grad_yy, &grad_xt, &grad_yt);
 
 	cv::Matx<double, 2, 2> a;
 	cv::Matx<double, 2, 1> b, vel_vector;
@@ -47,13 +47,12 @@ void LucasKanade::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 		double* ptr_x = vel_x.ptr<double>(i);
 		double* ptr_y = vel_y.ptr<double>(i);
 		for (int j = 0; j < cols; ++j, ++ptr_x, ++ptr_y) {
-			ix = grad_x[i * cols + j];
-			iy = grad_y[i * cols + j];
-			it = grad_t[i * cols + j];
+			ixx = grad_xx[i * cols + j];
+			ixy = grad_xy[i * cols + j];
+			iyy = grad_yy[i * cols + j];
+			ixt = grad_xt[i * cols + j];
+			iyt = grad_yt[i * cols + j];
 
-			// Calculates gradient values
-			ixx = ix * ix; ixy = ix * iy; iyy = iy * iy;
-			ixt = ix * it; iyt = iy * it;
 
 			// [Ix2 IxIy][IxIy Iy2]
 			a(0, 0) = ixx; a(0, 1) = ixy;
@@ -64,14 +63,24 @@ void LucasKanade::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 			b(1, 0) = -iyt;
 
 			// Solve linear equation
+			/*
+			if (abs(ixx * iyy - ixy * ixy) < 1e-10) {
+				printf("%.2lf %.2lf %.2lf, ", ixx, iyy, ixy);
+				*ptr_x = 0.0;
+				*ptr_y = 0.0;
+				continue;
+			}*/
 			vel_vector = a.inv() * b;
 			*ptr_x = vel_vector(0, 0);
 			*ptr_y = vel_vector(1, 0);
+
 		}
 	}
-	delete[] grad_x;
-	delete[] grad_y;
-	delete[] grad_t;
+	delete[] grad_xx;
+	delete[] grad_xy;
+	delete[] grad_yy;
+	delete[] grad_xt;
+	delete[] grad_yt;
 }
 
 void LucasKanade::SmoothFrame(int index) {
@@ -123,37 +132,76 @@ void LucasKanade::SmoothFrame(int index) {
 	}
 }
 
-void LucasKanade::GradientSmoothing(double** grad_x, double** grad_y, double** grad_t){
+void LucasKanade::GradientSmoothing(double** grad_xx, double** grad_xy, double** grad_yy, double** grad_xt, double **grad_yt){
 	double* grad_ex = GradientEstimationAtX();
 	double* grad_ey = GradientEstimationAtY();
 	double* grad_et = GradientEstimationAtT();
+	double* grad_exx;
+	double* grad_exy;
+	double* grad_eyy;
+	double* grad_ext;
+	double* grad_eyt;
 	int rows = frames[frames.size() / 2]->Rows();
 	int cols = frames[frames.size() / 2]->Columns();
 
-	*grad_x = new double[rows * cols];
-	*grad_y = new double[rows * cols];
-	*grad_t = new double[rows * cols];
+	grad_exx = new double[rows * cols];
+	grad_exy = new double[rows * cols];
+	grad_eyy = new double[rows * cols];
+	grad_ext = new double[rows * cols];
+	grad_eyt = new double[rows * cols];
 
-	double* ptr_x = *grad_x;
-	double* ptr_y = *grad_y;
-	double* ptr_t = *grad_t;
+	double* ptr_x = grad_ex;
+	double* ptr_y = grad_ey;
+	double* ptr_t = grad_et;
+
+	double* ptr_xx = grad_exx;
+	double* ptr_xy = grad_exy;
+	double* ptr_yy = grad_eyy;
+	double* ptr_xt = grad_ext;
+	double* ptr_yt = grad_eyt;
 
 	for (int i = 0; i < rows; ++i) {
-		for (int j = 0; j < cols; ++j, ++ptr_x, ++ptr_y, ++ptr_t) {
-			double pix_sum_x, pix_sum_y, pix_sum_t;
-			pix_sum_x = pix_sum_y = pix_sum_t = 0;
+		for (int j = 0; j < cols; ++j, ++ptr_x, ++ptr_y, ++ptr_t, ++ptr_xx, ++ptr_xy, ++ptr_yy, ++ptr_xt, ++ptr_yt) {
+			*ptr_xx = *ptr_x * *ptr_x;
+			*ptr_xy = *ptr_x * *ptr_y;
+			*ptr_yy = *ptr_y * *ptr_y;
+			*ptr_xt = *ptr_x * *ptr_t;
+			*ptr_yt = *ptr_y * *ptr_t;
+		}
+	}
+
+	*grad_xx = new double[rows * cols];
+	*grad_xy = new double[rows * cols];
+	*grad_yy = new double[rows * cols];
+	*grad_xt = new double[rows * cols];
+	*grad_yt = new double[rows * cols];
+	
+	ptr_xx = *grad_xx;
+	ptr_xy = *grad_xy;
+	ptr_yy = *grad_yy;
+	ptr_xt = *grad_xt;
+	ptr_yt = *grad_yt;
+
+	for (int i = 0; i < rows; ++i) {
+		for (int j = 0; j < cols; ++j, ++ptr_xx, ++ptr_xy, ++ptr_yy, ++ptr_xt, ++ptr_yt) {
+			double pix_sum_xx, pix_sum_xy, pix_sum_yy, pix_sum_xt, pix_sum_yt;
+			pix_sum_xx = pix_sum_xy = pix_sum_yy = pix_sum_xt = pix_sum_yt = 0;
 			for (int k = kGradientBegin; k <= kGradientEnd; ++k) {
 				for (int l = kGradientBegin; l <= kGradientEnd; ++l) {
 					if (i + k >= 0 && i + k < rows && j + l >= 0 && j + l < cols) {
-						pix_sum_x += grad_ex[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
-						pix_sum_y += grad_ey[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
-						pix_sum_t += grad_et[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
+						pix_sum_xx += grad_exx[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
+						pix_sum_xy += grad_exy[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
+						pix_sum_yy += grad_eyy[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
+						pix_sum_xt += grad_ext[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
+						pix_sum_yt += grad_eyt[(i + k) * cols + j + l] * kKernel[k + 2][l + 2];
 					}
 				}
 			}
-			*ptr_x = pix_sum_x;
-			*ptr_y = pix_sum_y;
-			*ptr_t = pix_sum_t;
+			*ptr_xx = pix_sum_xx;
+			*ptr_xy = pix_sum_xy;
+			*ptr_yy = pix_sum_yy;
+			*ptr_xt = pix_sum_xt;
+			*ptr_yt = pix_sum_yt;
 		}
 	}
 	delete[] grad_ex;

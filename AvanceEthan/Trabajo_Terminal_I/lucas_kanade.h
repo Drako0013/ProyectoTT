@@ -28,7 +28,7 @@ class LucasKanade {
 
   // Smoothing methods
   void SmoothFrame(int);
-  void GradientSmoothing(double**, double**, double**);
+  void GradientSmoothing(double** grad_xx, double** grad_xy, double** grad_yy, double** grad_xt, double **grad_yt);
   
   // Gradient methods
   double* GradientEstimationAtX();
