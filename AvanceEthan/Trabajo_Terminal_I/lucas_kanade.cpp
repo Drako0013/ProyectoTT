@@ -53,7 +53,6 @@ void LucasKanade::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 			ixt = grad_xt[i * cols + j];
 			iyt = grad_yt[i * cols + j];
 
-
 			// [Ix2 IxIy][IxIy Iy2]
 			a(0, 0) = ixx; a(0, 1) = ixy;
 			a(1, 0) = ixy; a(1, 1) = iyy;
@@ -63,17 +62,9 @@ void LucasKanade::CalculateFlow(cv::Mat& vel_x, cv::Mat& vel_y) {
 			b(1, 0) = -iyt;
 
 			// Solve linear equation
-			/*
-			if (abs(ixx * iyy - ixy * ixy) < 1e-10) {
-				printf("%.2lf %.2lf %.2lf, ", ixx, iyy, ixy);
-				*ptr_x = 0.0;
-				*ptr_y = 0.0;
-				continue;
-			}*/
 			vel_vector = a.inv() * b;
 			*ptr_x = vel_vector(0, 0);
 			*ptr_y = vel_vector(1, 0);
-
 		}
 	}
 	delete[] grad_xx;
@@ -136,11 +127,7 @@ void LucasKanade::GradientSmoothing(double** grad_xx, double** grad_xy, double**
 	double* grad_ex = GradientEstimationAtX();
 	double* grad_ey = GradientEstimationAtY();
 	double* grad_et = GradientEstimationAtT();
-	double* grad_exx;
-	double* grad_exy;
-	double* grad_eyy;
-	double* grad_ext;
-	double* grad_eyt;
+	double* grad_exx, *grad_exy, *grad_eyy, *grad_ext, *grad_eyt;
 	int rows = frames[frames.size() / 2]->Rows();
 	int cols = frames[frames.size() / 2]->Columns();
 
@@ -161,7 +148,8 @@ void LucasKanade::GradientSmoothing(double** grad_xx, double** grad_xy, double**
 	double* ptr_yt = grad_eyt;
 
 	for (int i = 0; i < rows; ++i) {
-		for (int j = 0; j < cols; ++j, ++ptr_x, ++ptr_y, ++ptr_t, ++ptr_xx, ++ptr_xy, ++ptr_yy, ++ptr_xt, ++ptr_yt) {
+		for (int j = 0; j < cols; ++j, ++ptr_x, ++ptr_y, ++ptr_t,
+        ++ptr_xx, ++ptr_xy, ++ptr_yy, ++ptr_xt, ++ptr_yt) {
 			*ptr_xx = *ptr_x * *ptr_x;
 			*ptr_xy = *ptr_x * *ptr_y;
 			*ptr_yy = *ptr_y * *ptr_y;
@@ -169,6 +157,10 @@ void LucasKanade::GradientSmoothing(double** grad_xx, double** grad_xy, double**
 			*ptr_yt = *ptr_y * *ptr_t;
 		}
 	}
+  
+  delete [] grad_ex;
+  delete [] grad_ey;
+  delete [] grad_et;
 
 	*grad_xx = new double[rows * cols];
 	*grad_xy = new double[rows * cols];
@@ -204,9 +196,11 @@ void LucasKanade::GradientSmoothing(double** grad_xx, double** grad_xy, double**
 			*ptr_yt = pix_sum_yt;
 		}
 	}
-	delete[] grad_ex;
-	delete[] grad_ey;
-	delete[] grad_et;
+	delete [] grad_exx;
+	delete [] grad_exy;
+	delete [] grad_eyy;
+	delete [] grad_ext;
+	delete [] grad_eyt;
 }
 
 double* LucasKanade::GradientEstimationAtX() {
