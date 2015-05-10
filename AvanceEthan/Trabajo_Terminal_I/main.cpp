@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
 
         // Set the pixel for video result.
 				lk_result->SetPixel(x, y, hor_color | ver_color);
-				fprintf(out, "(%.2lf, %.2lf) ", Y, X);
+				fprintf(out, "(%.2lf,%.2lf)", Y, X);
 			}
 			fprintf(out, "\n");
 		}
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
 
         // Set the pixel for video result.
 				hs_result->SetPixel(x, y, hor_color | ver_color);
-				fprintf(out, "(%.2lf, %.2lf) ", Y, X);
+				fprintf(out, "(%.2lf,%.2lf)", Y, X);
 			}
 			fprintf(out, "\n");
 		}
